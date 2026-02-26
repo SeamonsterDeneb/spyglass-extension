@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "action": {
+    "default_icon": "icon-128.png",
+    "default_title": "Spyglass"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["icon-128.png"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

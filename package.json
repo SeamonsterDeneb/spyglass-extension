@@ -1,0 +1,17 @@
+{
+  "name": "spyglass",
+  "version": "1.0.0",
+  "description": "A tool for checking and fixing color contrast on web pages",
+  "type": "module",
+  "scripts": {
+    "build": "node build.js",
+    "build:chrome": "TARGET=chrome node build.js",
+    "build:firefox": "TARGET=firefox node build.js",
+    "package": "node package.js",
+    "package:chrome": "TARGET=chrome node package.js",
+    "package:firefox": "TARGET=firefox node package.js"
+  },
+  "dependencies": {
+    "fs-extra": "^11.2.0"
+  }
+}
