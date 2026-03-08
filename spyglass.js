@@ -1,4 +1,4 @@
-import { APCAcontrast, sRGBtoY } from 'apca-w3';
+import { APCAcontrast, sRGBtoY } from "apca-w3";
 (function () {
   // Prevent multiple runs
   if (document.getElementById("contrast-checker-container")) return;
@@ -791,7 +791,7 @@ import { APCAcontrast, sRGBtoY } from 'apca-w3';
   }
 
   // --- CONSTANTS & STATE ---
-  const version = "1.5";
+  const version = "1.6";
 
   let isElementPicking = false;
   let isPickingForeground = true;
@@ -925,7 +925,7 @@ import { APCAcontrast, sRGBtoY } from 'apca-w3';
 
                           <!-- Details Pane (Hidden by default) -->
                           <div id="tab-panel-details" role="tabpanel" aria-labelledby="tab-btn-details" style="display: none; width: 100%; min-height: 100%; padding: 1rem; box-sizing: border-box;">
-                              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; height: 100%; align-content: start;">
+                              <div id="wcag-details-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; height: 100%; align-content: start;">
                                   <!-- AA Column -->
                                   <div>
                                       <div style="font-weight: 700; color: #374151; border-bottom: 1px solid #E5E7EB; margin-bottom: 0.5rem; padding-bottom: 0.25rem;">AA</div>
@@ -941,6 +941,23 @@ import { APCAcontrast, sRGBtoY } from 'apca-w3';
                                       <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem; font-size: 0.9rem; align-items: baseline;"><span>Large (4.5:1):</span> <span id="status-aaa-large" style="font-weight: 700;">Pass</span></div>
                                       <div style="margin-bottom: 0.5rem; font-size: 0.75rem; color: #6B7280; line-height: 1.2; font-style: italic;">(24px+ or 19px+ bold)</div>
                                   </div>
+                              </div>
+
+                              <!-- APCA Details (Hidden by default) -->
+                              <div id="apca-details-panel" style="display: none; height: 100%; align-content: start;">
+                                <div style="font-weight: 700; color: #374151; border-bottom: 1px solid #E5E7EB; margin-bottom: 0.5rem; padding-bottom: 0.25rem;">APCA Requirements (Bronze)</div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.9rem; align-items: baseline;">
+                                  <span>Detected Font Size:</span> <span id="apca-font-size" style="font-weight: 700;">-</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 1rem; font-size: 0.9rem; align-items: baseline;">
+                                  <span>Detected Font Weight:</span> <span id="apca-font-weight" style="font-weight: 700;">-</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem; font-size: 1rem; align-items: baseline;">
+                                  <span id="apca-threshold-label">Minimum Lc:</span> <span id="apca-min-lc" style="font-weight: 700;">-</span>
+                                </div>
+                                <div style="text-align: center; margin-top: 1rem;">
+                                  <span id="apca-status" style="font-weight: 700; font-size: 1.25rem; padding: 0.5rem 1rem; border-radius: 0.5rem;"></span>
+                                </div>
                               </div>
                           </div>
 
@@ -1026,11 +1043,11 @@ import { APCAcontrast, sRGBtoY } from 'apca-w3';
     "#contrast-checker-container .spyglass-tab-inactive:hover { background-color: #E5E7EB !important; color: #374151 !important; }",
     "#contrast-checker-container #contrast-ratio-display { font-size: 1.5em; font-weight: 900; }",
     ".spyglass-preview-highlight { outline: 2px dashed #2563EB !important; outline-offset: 2px !important; box-shadow: 0 0 0 4px #ffffff !important; border-radius: 4px; transition: all 0.2s ease; }",
-    '#contrast-checker-container .spyglass-algo-wrapper { display: flex; flex-direction: column; align-items: flex-start; padding: 0 0.5rem 0.25rem; }',
-    '#contrast-checker-container .spyglass-algo-label { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #6B7280; margin-bottom: 0.2rem; }',
-    '#contrast-checker-container .spyglass-algo-option { display: flex; align-items: center; gap: 0.3rem; cursor: pointer; font-size: 0.8rem; color: #374151; line-height: 1.6; }',
-    '#contrast-checker-container .spyglass-algo-option input { width: auto; height: auto; cursor: pointer; }',
-    '#contrast-checker-container .spyglass-algo-option input[type="radio"] { appearance: auto; -webkit-appearance: radio; width: auto; height: auto; cursor: pointer; }'
+    "#contrast-checker-container .spyglass-algo-wrapper { display: flex; flex-direction: column; align-items: flex-start; padding: 0 0.5rem 0.25rem; }",
+    "#contrast-checker-container .spyglass-algo-label { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #6B7280; margin-bottom: 0.2rem; }",
+    "#contrast-checker-container .spyglass-algo-option { display: flex; align-items: center; gap: 0.3rem; cursor: pointer; font-size: 0.8rem; color: #374151; line-height: 1.6; }",
+    "#contrast-checker-container .spyglass-algo-option input { width: auto; height: auto; cursor: pointer; }",
+    '#contrast-checker-container .spyglass-algo-option input[type="radio"] { appearance: auto; -webkit-appearance: radio; width: auto; height: auto; cursor: pointer; }',
   ].join(" ");
   styleSheet.innerText = styles;
   document.head.appendChild(styleSheet);
@@ -1098,7 +1115,6 @@ import { APCAcontrast, sRGBtoY } from 'apca-w3';
   const previewArea = document.getElementById("tab-panel-preview");
   const tweakPanel = document.getElementById("tweak-panel");
   const algoApca = document.getElementById("algo-apca");
-
 
   let resizeObserver;
 
@@ -1227,7 +1243,7 @@ import { APCAcontrast, sRGBtoY } from 'apca-w3';
   function getActiveContrast(fg, bg) {
     return algoApca.checked ? getAPCAContrast(fg, bg) : getContrast(fg, bg);
   }
-  
+
   function getElementBackgroundColor(element) {
     let el = element;
     while (el) {
@@ -1347,7 +1363,13 @@ import { APCAcontrast, sRGBtoY } from 'apca-w3';
     }
   }
 
-function updateMiniRatioPill(minContrast, maxContrast, isRange, tweakTarget, usingAPCA) {
+  function updateMiniRatioPill(
+    minContrast,
+    maxContrast,
+    isRange,
+    tweakTarget,
+    usingAPCA,
+  ) {
     const pillLabel = (val) =>
       usingAPCA ? `Lc ${val.toFixed(1)}` : `${val.toFixed(2)}:1`;
     const passColor = "#059669";
@@ -1479,153 +1501,235 @@ function updateMiniRatioPill(minContrast, maxContrast, isRange, tweakTarget, usi
       previewSummary.style.backgroundColor = effectiveBgHex;
     }
 
-    const ratioColor = contrast < tweakTargetContrast ? "#dc2626" : "#059669";
-    contrastRatioDisplay.style.color = ratioColor;
+    updateMiniRatioPill(
+      minContrast,
+      maxContrast,
+      isRange,
+      tweakTargetContrast,
+      usingAPCA,
+    );
 
-    updateMiniRatioPill(minContrast, maxContrast, isRange, tweakTargetContrast, usingAPCA);
-
-
-    const results = {
-      "aa-normal": contrast >= 4.5,
-      "aa-large": contrast >= 3,
-      "aa-graphics": contrast >= 3,
-      "aaa-normal": contrast >= 7,
-      "aaa-large": contrast >= 4.5,
+    // Define APCA thresholds
+    const apcaThresholds = {
+      12: { 400: 80, 700: 70 },
+      14: { 400: 75, 700: 60 },
+      16: { 400: 70, 700: 55 },
+      18: { 400: 65, 700: 50 },
+      24: { 400: 60, 700: 45 },
+      32: { 400: 55, 700: 40 }, // Represents 32px+
     };
 
-    for (const key in results) {
-      const el = document.getElementById(`status-${key}`);
-      el.textContent = results[key] ? "Pass" : "Fail";
-      el.className = results[key] ? "pass" : "fail";
-    }
+    let calculatedRatioColor;
 
-    const passNormal = contrast >= 4.5;
-    const passLarge = contrast >= 3.0;
+    if (usingAPCA) {
+      document.getElementById("wcag-details-grid").style.display = "none";
+      document.getElementById("apca-details-panel").style.display = "block";
 
-    const badgeStyle =
-      "padding: 0.1rem 0.4rem; border-radius: 0.25rem; font-size: 0.75em; font-weight: bold; margin-left: 0.5rem; vertical-align: middle; display: inline-block;";
-    const passStyle = "background-color: #065f46; color: white;";
-    const failStyle = "background-color: #b91c1c; color: white;";
+      document.getElementById("apca-font-size").textContent = currentFontSize;
+      document.getElementById("apca-font-weight").textContent =
+        currentFontWeight;
 
-    const statusNormal = document.getElementById("preview-status-normal");
-    statusNormal.textContent = passNormal
-      ? detectedTextCategory === "normal"
-        ? `Regular Text (${currentFontSize}, ${currentFontWeight} weight): Pass`
-        : "Regular Text: Pass"
-      : detectedTextCategory === "normal"
-        ? `Regular Text (${currentFontSize}, ${currentFontWeight} weight): Fail`
-        : "Regular Text: Fail";
-    statusNormal.style.cssText =
-      badgeStyle + (passNormal ? passStyle : failStyle);
+      let sizeInPx = parseFloat(currentFontSize);
+      let weightNum = parseInt(currentFontWeight, 10);
 
-    const statusLarge = document.getElementById("preview-status-large");
-    statusLarge.textContent = passLarge
-      ? detectedTextCategory === "large"
-        ? `Large Text (${currentFontSize}, ${currentFontWeight} weight): Pass`
-        : "Large Text: Pass"
-      : detectedTextCategory === "large"
-        ? `Large Text (${currentFontSize}, ${currentFontWeight} weight): Fail`
-        : "Large Text: Fail";
-    statusLarge.style.cssText =
-      badgeStyle + (passLarge ? passStyle : failStyle);
+      // Determine the effective weight to use for lookup (400 or 700)
+      let effectiveLookupWeight = weightNum >= 550 ? 700 : 400;
 
-    function setSwatchXIcon(swatchEl) {
-      swatchEl.textContent = "";
-      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-      svg.setAttribute("width", "16");
-      svg.setAttribute("height", "16");
-      svg.setAttribute("viewBox", "0 0 24 24");
-      svg.setAttribute("fill", "none");
-      svg.setAttribute("stroke", "#dc2626");
-      svg.setAttribute("stroke-width", "3");
-      svg.setAttribute("stroke-linecap", "round");
-      svg.setAttribute("stroke-linejoin", "round");
-      const line1 = document.createElementNS(
-        "http://www.w3.org/2000/svg",
-        "line",
-      );
-      line1.setAttribute("x1", "18");
-      line1.setAttribute("y1", "6");
-      line1.setAttribute("x2", "6");
-      line1.setAttribute("y2", "18");
-      const line2 = document.createElementNS(
-        "http://www.w3.org/2000/svg",
-        "line",
-      );
-      line2.setAttribute("x1", "6");
-      line2.setAttribute("y1", "6");
-      line2.setAttribute("x2", "18");
-      line2.setAttribute("y2", "18");
-      svg.appendChild(line1);
-      svg.appendChild(line2);
-      swatchEl.appendChild(svg);
-    }
+      let minLcRequired = 0;
+      const sortedSizes = Object.keys(apcaThresholds)
+        .map(Number)
+        .sort((a, b) => a - b);
 
-    if (contrast < tweakTargetContrast) {
-      fgSuggestionBox.style.display = "flex";
-      bgSuggestionBox.style.display = "flex";
-
-      fgSuggestionLabel.textContent = `${tweakTargetContrast}:1`;
-      bgSuggestionLabel.textContent = `${tweakTargetContrast}:1`;
-
-      const fgSuggestionHex = adjustLuminance(
-        fgHexWithAlpha,
-        tweakTargetContrast,
-        bgHexWithAlpha,
-        true, // we are tweaking foreground
-      );
-
-      const suggestedFgRgb = hexToRgba(fgSuggestionHex);
-      const testSolidFg = blendRgb(suggestedFgRgb, effectiveBg);
-      const newFgContrast = getContrast(testSolidFg, effectiveBg);
-
-      fgSuggestionBox.querySelector("span").style.display = "block";
-      if (newFgContrast >= tweakTargetContrast) {
-        fgSuggestionSwatch.style.backgroundColor = fgSuggestionHex;
-        fgSuggestionSwatch.textContent = "";
-        fgSuggestionBox.style.cursor = "pointer";
-        fgSuggestionBox.dataset.hex = fgSuggestionHex;
-        fgSuggestionBox.title = `Apply ${fgSuggestionHex}`;
-      } else {
-        fgSuggestionBox.querySelector("span").style.display = "none";
-        fgSuggestionSwatch.style.backgroundColor = "#FFFFFF";
-        setSwatchXIcon(fgSuggestionSwatch);
-        fgSuggestionBox.style.cursor = "not-allowed";
-        fgSuggestionBox.dataset.hex = "";
-        fgSuggestionBox.title = "Cannot find a passing color";
+      let foundSizeThreshold = sortedSizes[0]; // Default to smallest size (12px) for sizes below min table entry
+      for (const size of sortedSizes) {
+        if (sizeInPx >= size) {
+          foundSizeThreshold = size;
+        } else {
+          break; // Current size is smaller than 'size', so foundSizeThreshold holds the correct bucket
+        }
       }
 
-      const bgSuggestionHex = adjustLuminance(
-        bgHexWithAlpha,
-        tweakTargetContrast,
-        fgHexWithAlpha,
-        false, // we are tweaking background
-      );
-
-      const suggestedBgRgb = hexToRgba(bgSuggestionHex);
-      const testSolidBg = blendRgb(suggestedBgRgb, baseWhite);
-      const testSolidFgOverNewBg = blendRgb(fgRgba, testSolidBg);
-      const newBgContrast = getContrast(testSolidFgOverNewBg, testSolidBg);
-
-      bgSuggestionBox.querySelector("span").style.display = "block";
-      if (newBgContrast >= tweakTargetContrast) {
-        bgSuggestionSwatch.style.backgroundColor = bgSuggestionHex;
-        bgSuggestionSwatch.textContent = "";
-        bgSuggestionBox.style.cursor = "pointer";
-        bgSuggestionBox.dataset.hex = bgSuggestionHex;
-        bgSuggestionBox.title = `Apply ${bgSuggestionHex}`;
+      if (
+        apcaThresholds[foundSizeThreshold] &&
+        apcaThresholds[foundSizeThreshold][effectiveLookupWeight]
+      ) {
+        minLcRequired =
+          apcaThresholds[foundSizeThreshold][effectiveLookupWeight];
       } else {
-        bgSuggestionBox.querySelector("span").style.display = "none";
-        bgSuggestionSwatch.style.backgroundColor = "#FFFFFF";
-        setSwatchXIcon(bgSuggestionSwatch);
-        bgSuggestionBox.style.cursor = "not-allowed";
-        bgSuggestionBox.dataset.hex = "";
-        bgSuggestionBox.title = "Cannot find a passing color";
+        // Fallback if no specific threshold found for the effective weight or size.
+        minLcRequired = 80; // Lc 80 (12px, 400 weight)
       }
-    } else {
+
+      document.getElementById("apca-min-lc").textContent =
+        `Lc ${minLcRequired.toFixed(1)}`;
+      const apcaPass = Math.abs(contrast) >= minLcRequired;
+      const apcaStatusEl = document.getElementById("apca-status");
+      apcaStatusEl.textContent = apcaPass ? "PASS" : "FAIL";
+      apcaStatusEl.style.backgroundColor = apcaPass ? "#059669" : "#dc2626";
+      apcaStatusEl.style.color = "white";
+
+      calculatedRatioColor = apcaPass ? "#059669" : "#dc2626";
+
+      // Hide tweak suggestions when APCA is active, as they are WCAG-based
       fgSuggestionBox.style.display = "none";
       bgSuggestionBox.style.display = "none";
+    } else {
+      // WCAG is active
+      document.getElementById("wcag-details-grid").style.display = "grid";
+      document.getElementById("apca-details-panel").style.display = "none";
+
+      const results = {
+        "aa-normal": contrast >= 4.5,
+        "aa-large": contrast >= 3,
+        "aa-graphics": contrast >= 3,
+        "aaa-normal": contrast >= 7,
+        "aaa-large": contrast >= 4.5,
+      };
+
+      for (const key in results) {
+        const el = document.getElementById(`status-${key}`);
+        el.textContent = results[key] ? "Pass" : "Fail";
+        el.className = results[key] ? "pass" : "fail";
+      }
+
+      const passNormal = contrast >= 4.5;
+      const passLarge = contrast >= 3.0;
+
+      const badgeStyle =
+        "padding: 0.1rem 0.4rem; border-radius: 0.25rem; font-size: 0.75em; font-weight: bold; margin-left: 0.5rem; vertical-align: middle; display: inline-block;";
+      const passStyle = "background-color: #065f46; color: white;";
+      const failStyle = "background-color: #b91c1c; color: white;";
+
+      const statusNormal = document.getElementById("preview-status-normal");
+      statusNormal.textContent = passNormal
+        ? detectedTextCategory === "normal"
+          ? `Regular Text (${currentFontSize}, ${currentFontWeight} weight): Pass`
+          : "Regular Text: Pass"
+        : detectedTextCategory === "normal"
+          ? `Regular Text (${currentFontSize}, ${currentFontWeight} weight): Fail`
+          : "Regular Text: Fail";
+      statusNormal.style.cssText =
+        badgeStyle + (passNormal ? passStyle : failStyle);
+
+      const statusLarge = document.getElementById("preview-status-large");
+      statusLarge.textContent = passLarge
+        ? detectedTextCategory === "large"
+          ? `Large Text (${currentFontSize}, ${currentFontWeight} weight): Pass`
+          : "Large Text: Pass"
+        : detectedTextCategory === "large"
+          ? `Large Text (${currentFontSize}, ${currentFontWeight} weight): Fail`
+          : "Large Text: Fail";
+      statusLarge.style.cssText =
+        badgeStyle + (passLarge ? passStyle : failStyle);
+
+      // setSwatchXIcon is defined within updateUI but used in the tweak suggestions block.
+      // It remains in its current scope which is accessible here.
+      function setSwatchXIcon(swatchEl) {
+        swatchEl.textContent = "";
+        const svg = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "svg",
+        );
+        svg.setAttribute("width", "16");
+        svg.setAttribute("height", "16");
+        svg.setAttribute("viewBox", "0 0 24 24");
+        svg.setAttribute("fill", "none");
+        svg.setAttribute("stroke", "#dc2626");
+        svg.setAttribute("stroke-width", "3");
+        svg.setAttribute("stroke-linecap", "round");
+        svg.setAttribute("stroke-linejoin", "round");
+        const line1 = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "line",
+        );
+        line1.setAttribute("x1", "18");
+        line1.setAttribute("y1", "6");
+        line1.setAttribute("x2", "6");
+        line1.setAttribute("y2", "18");
+        const line2 = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "line",
+        );
+        line2.setAttribute("x1", "6");
+        line2.setAttribute("y1", "6");
+        line2.setAttribute("x2", "18");
+        line2.setAttribute("y2", "18");
+        svg.appendChild(line1);
+        svg.appendChild(line2);
+        swatchEl.appendChild(svg);
+      }
+
+      if (contrast < tweakTargetContrast) {
+        fgSuggestionBox.style.display = "flex";
+        bgSuggestionBox.style.display = "flex";
+
+        fgSuggestionLabel.textContent = `${tweakTargetContrast}:1`;
+        bgSuggestionLabel.textContent = `${tweakTargetContrast}:1`;
+
+        const fgSuggestionHex = adjustLuminance(
+          fgHexWithAlpha,
+          tweakTargetContrast,
+          bgHexWithAlpha,
+          true, // we are tweaking foreground
+        );
+
+        const suggestedFgRgb = hexToRgba(fgSuggestionHex);
+        const testSolidFg = blendRgb(suggestedFgRgb, effectiveBg);
+        const newFgContrast = getContrast(testSolidFg, effectiveBg);
+
+        fgSuggestionBox.querySelector("span").style.display = "block";
+        if (newFgContrast >= tweakTargetContrast) {
+          fgSuggestionSwatch.style.backgroundColor = fgSuggestionHex;
+          fgSuggestionSwatch.textContent = "";
+          fgSuggestionBox.style.cursor = "pointer";
+          fgSuggestionBox.dataset.hex = fgSuggestionHex;
+          fgSuggestionBox.title = `Apply ${fgSuggestionHex}`;
+        } else {
+          fgSuggestionBox.querySelector("span").style.display = "none";
+          fgSuggestionSwatch.style.backgroundColor = "#FFFFFF";
+          setSwatchXIcon(fgSuggestionSwatch);
+          fgSuggestionBox.style.cursor = "not-allowed";
+          fgSuggestionBox.dataset.hex = "";
+          fgSuggestionBox.title = "Cannot find a passing color";
+        }
+
+        const bgSuggestionHex = adjustLuminance(
+          bgHexWithAlpha,
+          tweakTargetContrast,
+          fgHexWithAlpha,
+          false, // we are tweaking background
+        );
+
+        const suggestedBgRgb = hexToRgba(bgSuggestionHex);
+        const testSolidBg = blendRgb(suggestedBgRgb, baseWhite);
+        const testSolidFgOverNewBg = blendRgb(fgRgba, testSolidBg);
+        const newBgContrast = getContrast(testSolidFgOverNewBg, testSolidBg);
+
+        bgSuggestionBox.querySelector("span").style.display = "block";
+        if (newBgContrast >= tweakTargetContrast) {
+          bgSuggestionSwatch.style.backgroundColor = bgSuggestionHex;
+          bgSuggestionSwatch.textContent = "";
+          bgSuggestionBox.style.cursor = "pointer";
+          bgSuggestionBox.dataset.hex = bgSuggestionHex;
+          bgSuggestionBox.title = `Apply ${bgSuggestionHex}`;
+        } else {
+          bgSuggestionBox.querySelector("span").style.display = "none";
+          bgSuggestionSwatch.style.backgroundColor = "#FFFFFF";
+          setSwatchXIcon(bgSuggestionSwatch);
+          bgSuggestionBox.style.cursor = "not-allowed";
+          bgSuggestionBox.dataset.hex = "";
+          bgSuggestionBox.title = "Cannot find a passing color";
+        }
+      } else {
+        fgSuggestionBox.style.display = "none";
+        bgSuggestionBox.style.display = "none";
+      }
+
+      calculatedRatioColor =
+        contrast < tweakTargetContrast ? "#dc2626" : "#059669";
     }
+
+    contrastRatioDisplay.style.color = calculatedRatioColor;
 
     setTimeout(updateScrollButtonsVisibility, 50);
 
@@ -1929,7 +2033,9 @@ function updateMiniRatioPill(minContrast, maxContrast, isRange, tweakTarget, usi
   });
 
   algoApca.addEventListener("change", () => updateUI());
-  document.getElementById("algo-wcag").addEventListener("change", () => updateUI());
+  document
+    .getElementById("algo-wcag")
+    .addEventListener("change", () => updateUI());
 
   tweakTargetBtn.addEventListener("click", (e) => {
     e.preventDefault();
