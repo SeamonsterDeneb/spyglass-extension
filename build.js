@@ -1,13 +1,13 @@
 import fs from 'fs-extra';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import esbuild from 'esbuild';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // The files in your source directory to copy into each dist folder
 const SOURCE_FILES = [
   'background.js',
-  'spyglass.js',
   'icon-16.png',
   'icon-48.png',
   'icon-128.png'
@@ -58,6 +58,15 @@ async function build(target) {
       console.warn(`  WARNING: Source file not found, skipping: ${file}`);
     }
   }
+
+  // Write merged manifest
+  await esbuild.build({
+    entryPoints: [path.join(__dirname, 'spyglass.js')],
+    bundle: true,
+    format: 'iife',
+    outfile: path.join(distDir, 'spyglass.js'),
+  });
+  console.log(`  Bundled: spyglass.js`);
 
   // Write merged manifest
   fs.writeFileSync(

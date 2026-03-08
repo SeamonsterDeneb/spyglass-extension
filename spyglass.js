@@ -1,3 +1,4 @@
+import { APCAcontrast, sRGBtoY } from 'apca-w3';
 (function () {
   // Prevent multiple runs
   if (document.getElementById("contrast-checker-container")) return;
@@ -790,7 +791,7 @@
   }
 
   // --- CONSTANTS & STATE ---
-  const version = "1.0";
+  const version = "1.5";
 
   let isElementPicking = false;
   let isPickingForeground = true;
@@ -895,13 +896,24 @@
                 </summary>
 
                   <div id="preview-contrast-tabs" style="margin-bottom: 1rem;">
-                      <div role="tablist" aria-label="Contrast Results" style="display: flex; gap: 0.25rem; padding-left: 0.5rem; margin-bottom: -1px; position: relative; z-index: 10;">
+                    <div role="tablist" aria-label="Contrast Results" style="display: flex; gap: 0.25rem; padding-left: 0.5rem; margin-bottom: -1px; position: relative; z-index: 10; justify-content: space-between; align-items: flex-end;">
+                        <div style="display: flex; gap: 0.25rem;">
                           <button id="tab-btn-preview" role="tab" aria-selected="true" aria-controls="tab-panel-preview" class="spyglass-tab spyglass-tab-active">Preview</button>
                           <button id="tab-btn-details" role="tab" aria-selected="false" aria-controls="tab-panel-details" class="spyglass-tab spyglass-tab-inactive">
                             <span id="contrast-ratio-display" style="font-size: 1.5em; font-weight: 900; display: block; line-height: 1.1;">21.00:1</span>
                             <span style="display: block; font-size: 0.8rem; line-height: 1.2;">Contrast Details</span>
                           </button>
-                      </div>
+                        </div>
+                        <div class="spyglass-algo-wrapper">
+                            <span class="spyglass-algo-label">Algorithm</span>
+                            <label class="spyglass-algo-option">
+                                <input type="radio" name="contrast-algorithm" id="algo-wcag" value="wcag" checked> WCAG
+                            </label>
+                            <label class="spyglass-algo-option">
+                                <input type="radio" name="contrast-algorithm" id="algo-apca" value="apca"> APCA
+                            </label>
+                        </div>
+                          </div>
                       <div id="tab-content-area" style="border: 1px solid #D1D5DB; border-radius: 0.5rem; border-top-left-radius: 0; background-color: #FFFFFF; height: 13.5rem; overflow-y: auto; position: relative;">
 
                           <!-- Preview Pane (Visible by default) -->
@@ -1014,6 +1026,11 @@
     "#contrast-checker-container .spyglass-tab-inactive:hover { background-color: #E5E7EB !important; color: #374151 !important; }",
     "#contrast-checker-container #contrast-ratio-display { font-size: 1.5em; font-weight: 900; }",
     ".spyglass-preview-highlight { outline: 2px dashed #2563EB !important; outline-offset: 2px !important; box-shadow: 0 0 0 4px #ffffff !important; border-radius: 4px; transition: all 0.2s ease; }",
+    '#contrast-checker-container .spyglass-algo-wrapper { display: flex; flex-direction: column; align-items: flex-start; padding: 0 0.5rem 0.25rem; }',
+    '#contrast-checker-container .spyglass-algo-label { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #6B7280; margin-bottom: 0.2rem; }',
+    '#contrast-checker-container .spyglass-algo-option { display: flex; align-items: center; gap: 0.3rem; cursor: pointer; font-size: 0.8rem; color: #374151; line-height: 1.6; }',
+    '#contrast-checker-container .spyglass-algo-option input { width: auto; height: auto; cursor: pointer; }',
+    '#contrast-checker-container .spyglass-algo-option input[type="radio"] { appearance: auto; -webkit-appearance: radio; width: auto; height: auto; cursor: pointer; }'
   ].join(" ");
   styleSheet.innerText = styles;
   document.head.appendChild(styleSheet);
@@ -1080,6 +1097,8 @@
 
   const previewArea = document.getElementById("tab-panel-preview");
   const tweakPanel = document.getElementById("tweak-panel");
+  const algoApca = document.getElementById("algo-apca");
+
 
   let resizeObserver;
 
@@ -1199,6 +1218,16 @@
     return (brightest + 0.05) / (darkest + 0.05);
   }
 
+  function getAPCAContrast(fg, bg) {
+    const fgY = sRGBtoY([fg.r, fg.g, fg.b]);
+    const bgY = sRGBtoY([bg.r, bg.g, bg.b]);
+    return Math.abs(APCAcontrast(fgY, bgY));
+  }
+
+  function getActiveContrast(fg, bg) {
+    return algoApca.checked ? getAPCAContrast(fg, bg) : getContrast(fg, bg);
+  }
+  
   function getElementBackgroundColor(element) {
     let el = element;
     while (el) {
@@ -1318,7 +1347,9 @@
     }
   }
 
-  function updateMiniRatioPill(minContrast, maxContrast, isRange, tweakTarget) {
+function updateMiniRatioPill(minContrast, maxContrast, isRange, tweakTarget, usingAPCA) {
+    const pillLabel = (val) =>
+      usingAPCA ? `Lc ${val.toFixed(1)}` : `${val.toFixed(2)}:1`;
     const passColor = "#059669";
     const failColor = "#dc2626";
     const pillColor = minContrast >= tweakTarget ? passColor : failColor;
@@ -1332,14 +1363,14 @@
       const spanMin = document.createElement("span");
       spanMin.style.cssText =
         "display:block; line-height:1.3; font-size:0.8rem;";
-      spanMin.textContent = `${minContrast.toFixed(2)}:1`;
+      spanMin.textContent = pillLabel(minContrast);
       const spanMax = document.createElement("span");
       spanMax.style.cssText = `display:block; line-height:1.3; font-size:0.8rem; border-top:1px solid ${pillColor}; margin-top:1px; padding-top:1px;`;
-      spanMax.textContent = `${maxContrast.toFixed(2)}:1`;
+      spanMax.textContent = pillLabel(maxContrast);
       miniRatioPill.appendChild(spanMin);
       miniRatioPill.appendChild(spanMax);
     } else {
-      miniRatioPill.textContent = `${minContrast.toFixed(2)}:1`;
+      miniRatioPill.textContent = pillLabel(minContrast);
     }
   }
 
@@ -1357,7 +1388,9 @@
       currentFontSize = computedStyle.fontSize;
       currentFontWeight = computedStyle.fontWeight;
     }
-
+    const usingAPCA = algoApca.checked;
+    const contrastLabel = (val) =>
+      usingAPCA ? `Lc ${val.toFixed(1)}` : `${val.toFixed(2)}:1`;
     tweakTargetBtn.textContent = `${tweakTargetContrast}:1`;
     tweakPanel.style.display = "block";
 
@@ -1404,7 +1437,9 @@
       minContrast = pixelAnalysisResult.minContrast;
       maxContrast = pixelAnalysisResult.maxContrast;
       isRange = true;
-      contrastDisplay = `${minContrast.toFixed(2)}–${maxContrast.toFixed(2)}:1`;
+      contrastDisplay = usingAPCA
+        ? `Lc ${minContrast.toFixed(1)}–${maxContrast.toFixed(1)}`
+        : `${minContrast.toFixed(2)}–${maxContrast.toFixed(2)}:1`;
 
       const typeLabel =
         pixelAnalysisResult.type === "gradient" ? "gradient" : "image";
@@ -1431,11 +1466,11 @@
 
       miniRatioPill.style.backgroundColor = "#F3F4F6";
     } else {
-      contrast = getContrast(effectiveFg, effectiveBg);
+      contrast = getActiveContrast(effectiveFg, effectiveBg);
       minContrast = contrast;
       maxContrast = contrast;
       isRange = false;
-      contrastDisplay = contrast.toFixed(2) + ":1";
+      contrastDisplay = contrastLabel(contrast);
       contrastRatioDisplay.textContent = contrastDisplay;
 
       previewArea.style.backgroundImage = "";
@@ -1447,7 +1482,8 @@
     const ratioColor = contrast < tweakTargetContrast ? "#dc2626" : "#059669";
     contrastRatioDisplay.style.color = ratioColor;
 
-    updateMiniRatioPill(minContrast, maxContrast, isRange, tweakTargetContrast);
+    updateMiniRatioPill(minContrast, maxContrast, isRange, tweakTargetContrast, usingAPCA);
+
 
     const results = {
       "aa-normal": contrast >= 4.5,
@@ -1891,6 +1927,9 @@
       updateUI();
     }
   });
+
+  algoApca.addEventListener("change", () => updateUI());
+  document.getElementById("algo-wcag").addEventListener("change", () => updateUI());
 
   tweakTargetBtn.addEventListener("click", (e) => {
     e.preventDefault();
