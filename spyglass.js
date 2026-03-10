@@ -1234,6 +1234,57 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
     return (brightest + 0.05) / (darkest + 0.05);
   }
 
+  function rgbaToHsl(rgba) {
+    const r = rgba.r / 255;
+    const g = rgba.g / 255;
+    const b = rgba.b / 255;
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    let h, s;
+    const l = (max + min) / 2;
+
+    if (max === min) {
+      h = s = 0;
+    } else {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      switch (max) {
+        case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+        case g: h = ((b - r) / d + 2) / 6; break;
+        case b: h = ((r - g) / d + 4) / 6; break;
+      }
+    }
+    return { h, s, l, a: rgba.a !== undefined ? rgba.a : 1 };
+  }
+
+  function hslToRgba(hsl) {
+    const { h, s, l, a } = hsl;
+    let r, g, b;
+    if (s === 0) {
+      r = g = b = l;
+    } else {
+      const hue2rgb = (p, q, t) => {
+        if (t < 0) t += 1;
+        if (t > 1) t -= 1;
+        if (t < 1/6) return p + (q - p) * 6 * t;
+        if (t < 1/2) return q;
+        if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+        return p;
+      };
+      const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+      const p = 2 * l - q;
+      r = hue2rgb(p, q, h + 1/3);
+      g = hue2rgb(p, q, h);
+      b = hue2rgb(p, q, h - 1/3);
+    }
+    return {
+      r: Math.round(r * 255),
+      g: Math.round(g * 255),
+      b: Math.round(b * 255),
+      a: a !== undefined ? a : 1,
+    };
+  }
+
   function getAPCAContrast(fg, bg) {
     const fgY = sRGBtoY([fg.r, fg.g, fg.b]);
     const bgY = sRGBtoY([bg.r, bg.g, bg.b]);
@@ -1521,6 +1572,42 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
 
     let calculatedRatioColor;
 
+    // setSwatchXIcon is shared between APCA and WCAG suggestion logic
+    function setSwatchXIcon(swatchEl) {
+      swatchEl.textContent = "";
+      const svg = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "svg",
+      );
+      svg.setAttribute("width", "16");
+      svg.setAttribute("height", "16");
+      svg.setAttribute("viewBox", "0 0 24 24");
+      svg.setAttribute("fill", "none");
+      svg.setAttribute("stroke", "#dc2626");
+      svg.setAttribute("stroke-width", "3");
+      svg.setAttribute("stroke-linecap", "round");
+      svg.setAttribute("stroke-linejoin", "round");
+      const line1 = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "line",
+      );
+      line1.setAttribute("x1", "18");
+      line1.setAttribute("y1", "6");
+      line1.setAttribute("x2", "6");
+      line1.setAttribute("y2", "18");
+      const line2 = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "line",
+      );
+      line2.setAttribute("x1", "6");
+      line2.setAttribute("y1", "6");
+      line2.setAttribute("x2", "18");
+      line2.setAttribute("y2", "18");
+      svg.appendChild(line1);
+      svg.appendChild(line2);
+      swatchEl.appendChild(svg);
+    }
+
     if (usingAPCA) {
       document.getElementById("wcag-details-grid").style.display = "none";
       document.getElementById("apca-details-panel").style.display = "block";
@@ -1570,9 +1657,65 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
 
       calculatedRatioColor = apcaPass ? "#059669" : "#dc2626";
 
-      // Hide tweak suggestions when APCA is active, as they are WCAG-based
-      fgSuggestionBox.style.display = "none";
-      bgSuggestionBox.style.display = "none";
+      // APCA suggestions — show when below Lc 75 (body text target)
+      const apcaSuggestionTarget = 75;
+      if (contrast < apcaSuggestionTarget) {
+        fgSuggestionBox.style.display = "flex";
+        bgSuggestionBox.style.display = "flex";
+
+        fgSuggestionLabel.textContent = "Lc 75";
+        bgSuggestionLabel.textContent = "Lc 75";
+
+        const fgSuggestionHex = adjustLuminanceAPCA(fgRgba, bgRgba, apcaSuggestionTarget, true);
+        const bgSuggestionHex = adjustLuminanceAPCA(bgRgba, fgRgba, apcaSuggestionTarget, false);
+
+        // Verify fg suggestion
+        const suggestedFgRgba = hexToRgba(fgSuggestionHex);
+        const verifyFgSolidBg = blendRgb(bgRgba, baseWhite);
+        const verifyFgSolidFg = blendRgb(suggestedFgRgba, verifyFgSolidBg);
+        const newFgContrast = getAPCAContrast(verifyFgSolidFg, verifyFgSolidBg);
+
+        fgSuggestionBox.querySelector("span").style.display = "block";
+        if (newFgContrast >= apcaSuggestionTarget) {
+          fgSuggestionSwatch.style.backgroundColor = fgSuggestionHex;
+          fgSuggestionSwatch.textContent = "";
+          fgSuggestionBox.style.cursor = "pointer";
+          fgSuggestionBox.dataset.hex = fgSuggestionHex;
+          fgSuggestionBox.title = `Apply ${fgSuggestionHex}`;
+        } else {
+          fgSuggestionBox.querySelector("span").style.display = "none";
+          fgSuggestionSwatch.style.backgroundColor = "#FFFFFF";
+          setSwatchXIcon(fgSuggestionSwatch);
+          fgSuggestionBox.style.cursor = "not-allowed";
+          fgSuggestionBox.dataset.hex = "";
+          fgSuggestionBox.title = "Cannot find a passing color";
+        }
+
+        // Verify bg suggestion
+        const suggestedBgRgba = hexToRgba(bgSuggestionHex);
+        const verifyBgSolidBg = blendRgb(suggestedBgRgba, baseWhite);
+        const verifyBgSolidFg = blendRgb(fgRgba, verifyBgSolidBg);
+        const newBgContrast = getAPCAContrast(verifyBgSolidFg, verifyBgSolidBg);
+
+        bgSuggestionBox.querySelector("span").style.display = "block";
+        if (newBgContrast >= apcaSuggestionTarget) {
+          bgSuggestionSwatch.style.backgroundColor = bgSuggestionHex;
+          bgSuggestionSwatch.textContent = "";
+          bgSuggestionBox.style.cursor = "pointer";
+          bgSuggestionBox.dataset.hex = bgSuggestionHex;
+          bgSuggestionBox.title = `Apply ${bgSuggestionHex}`;
+        } else {
+          bgSuggestionBox.querySelector("span").style.display = "none";
+          bgSuggestionSwatch.style.backgroundColor = "#FFFFFF";
+          setSwatchXIcon(bgSuggestionSwatch);
+          bgSuggestionBox.style.cursor = "not-allowed";
+          bgSuggestionBox.dataset.hex = "";
+          bgSuggestionBox.title = "Cannot find a passing color";
+        }
+      } else {
+        fgSuggestionBox.style.display = "none";
+        bgSuggestionBox.style.display = "none";
+      }
     } else {
       // WCAG is active
       document.getElementById("wcag-details-grid").style.display = "grid";
@@ -1621,43 +1764,6 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
           : "Large Text: Fail";
       statusLarge.style.cssText =
         badgeStyle + (passLarge ? passStyle : failStyle);
-
-      // setSwatchXIcon is defined within updateUI but used in the tweak suggestions block.
-      // It remains in its current scope which is accessible here.
-      function setSwatchXIcon(swatchEl) {
-        swatchEl.textContent = "";
-        const svg = document.createElementNS(
-          "http://www.w3.org/2000/svg",
-          "svg",
-        );
-        svg.setAttribute("width", "16");
-        svg.setAttribute("height", "16");
-        svg.setAttribute("viewBox", "0 0 24 24");
-        svg.setAttribute("fill", "none");
-        svg.setAttribute("stroke", "#dc2626");
-        svg.setAttribute("stroke-width", "3");
-        svg.setAttribute("stroke-linecap", "round");
-        svg.setAttribute("stroke-linejoin", "round");
-        const line1 = document.createElementNS(
-          "http://www.w3.org/2000/svg",
-          "line",
-        );
-        line1.setAttribute("x1", "18");
-        line1.setAttribute("y1", "6");
-        line1.setAttribute("x2", "6");
-        line1.setAttribute("y2", "18");
-        const line2 = document.createElementNS(
-          "http://www.w3.org/2000/svg",
-          "line",
-        );
-        line2.setAttribute("x1", "6");
-        line2.setAttribute("y1", "6");
-        line2.setAttribute("x2", "18");
-        line2.setAttribute("y2", "18");
-        svg.appendChild(line1);
-        svg.appendChild(line2);
-        swatchEl.appendChild(svg);
-      }
 
       if (contrast < tweakTargetContrast) {
         fgSuggestionBox.style.display = "flex";
@@ -2289,6 +2395,122 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
     if (result) return result;
 
     return rgbToHex(startRgb.r, startRgb.g, startRgb.b);
+  }
+
+  function adjustLuminanceAPCA(colorRgba, otherColorRgba, targetLc, isAdjustingForeground) {
+    if (!colorRgba || !otherColorRgba) return "#FF0000";
+
+    const baseWhite = { r: 255, g: 255, b: 255, a: 1 };
+
+    function checkAPCA(testRgba) {
+      let solidFg, solidBg;
+      if (isAdjustingForeground) {
+        solidBg = blendRgb(otherColorRgba, baseWhite);
+        solidFg = blendRgb(testRgba, solidBg);
+      } else {
+        solidBg = blendRgb(testRgba, baseWhite);
+        solidFg = blendRgb(otherColorRgba, solidBg);
+      }
+      return getAPCAContrast(solidFg, solidBg);
+    }
+
+    let adjustedColor = { ...colorRgba };
+
+    // Phase 1: If semi-transparent, try increasing alpha first
+    if (colorRgba.a < 1) {
+      let lo = colorRgba.a;
+      let hi = 1;
+      let bestAlpha = hi;
+      // Check if full opacity achieves target
+      const fullOpaque = { ...colorRgba, a: 1 };
+      if (checkAPCA(fullOpaque) >= targetLc) {
+        // Binary search for minimum passing alpha
+        for (let i = 0; i < 20; i++) {
+          const mid = (lo + hi) / 2;
+          const testColor = { ...colorRgba, a: mid };
+          if (checkAPCA(testColor) >= targetLc) {
+            bestAlpha = mid;
+            hi = mid;
+          } else {
+            lo = mid;
+          }
+        }
+        adjustedColor = { ...colorRgba, a: bestAlpha };
+        const hex = rgbToHex(adjustedColor.r, adjustedColor.g, adjustedColor.b);
+        const alphaHex = Math.round(bestAlpha * 255).toString(16).padStart(2, "0").toUpperCase();
+        return alphaHex === "FF" ? hex : hex + alphaHex;
+      }
+      // Alpha adjustment alone wasn't enough — proceed with fully opaque version
+      adjustedColor = { ...colorRgba, a: 1 };
+    }
+
+    // Phase 2: Adjust lightness in HSL space
+    if (checkAPCA(adjustedColor) >= targetLc) {
+      return rgbToHex(adjustedColor.r, adjustedColor.g, adjustedColor.b);
+    }
+
+    const hsl = rgbaToHsl(adjustedColor);
+
+    // Determine which direction to push lightness (toward black or white)
+    const testDark = hslToRgba({ ...hsl, l: 0 });
+    const testLight = hslToRgba({ ...hsl, l: 1 });
+    const contrastDark = checkAPCA(testDark);
+    const contrastLight = checkAPCA(testLight);
+
+    // Pick the direction that yields higher contrast
+    const goLighter = contrastLight >= contrastDark;
+    const targetL = goLighter ? 1 : 0;
+
+    let lo = hsl.l;
+    let hi = targetL;
+    if (lo > hi) { [lo, hi] = [hi, lo]; }
+
+    let bestL = goLighter ? 1 : 0;
+    let found = false;
+
+    for (let i = 0; i < 30; i++) {
+      const midL = (lo + hi) / 2;
+      const testRgba = hslToRgba({ ...hsl, l: midL });
+      const lc = checkAPCA(testRgba);
+
+      if (lc >= targetLc) {
+        bestL = midL;
+        found = true;
+        // Try to keep lightness closer to original (less drastic change)
+        if (goLighter) hi = midL;
+        else lo = midL;
+      } else {
+        if (goLighter) lo = midL;
+        else hi = midL;
+      }
+    }
+
+    if (!found) {
+      // Fallback: try the other direction
+      const altTargetL = goLighter ? 0 : 1;
+      let lo2 = hsl.l;
+      let hi2 = altTargetL;
+      if (lo2 > hi2) { [lo2, hi2] = [hi2, lo2]; }
+
+      for (let i = 0; i < 30; i++) {
+        const midL = (lo2 + hi2) / 2;
+        const testRgba = hslToRgba({ ...hsl, l: midL });
+        const lc = checkAPCA(testRgba);
+
+        if (lc >= targetLc) {
+          bestL = midL;
+          found = true;
+          if (!goLighter) hi2 = midL;
+          else lo2 = midL;
+        } else {
+          if (!goLighter) lo2 = midL;
+          else hi2 = midL;
+        }
+      }
+    }
+
+    const resultRgba = hslToRgba({ ...hsl, l: bestL });
+    return rgbToHex(resultRgba.r, resultRgba.g, resultRgba.b);
   }
 
   // --- INITIAL RUN ---
