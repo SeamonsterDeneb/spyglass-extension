@@ -968,10 +968,10 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
                                       <td class="apca-td apca-rec" id="apca-rec-size">—</td>
                                     </tr>
                                     <tr>
-                                      <td class="apca-td apca-label apca-row-border">Weight</td>
-                                      <td class="apca-td apca-detected apca-row-border" id="apca-font-weight">-</td>
-                                      <td class="apca-td apca-row-border" id="apca-min-lc-weight">-</td>
-                                      <td class="apca-td apca-needed apca-row-border" id="apca-needed-weight">-</td>
+                                      <td class="apca-td apca-label">Weight</td>
+                                      <td class="apca-td apca-detected" id="apca-font-weight">-</td>
+                                      <td class="apca-td" id="apca-min-lc-weight">-</td>
+                                      <td class="apca-td apca-needed" id="apca-needed-weight">-</td>
                                       <td class="apca-td apca-rec" id="apca-rec-weight">—</td>
                                     </tr>
                                   </tbody>
@@ -1073,7 +1073,9 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
     "#contrast-checker-container #apca-details-panel #apca-status { font-weight: 700; font-size: 0.8rem; padding: 0.15rem 0.5rem; border-radius: 0.375rem; color: white; }",
     "#contrast-checker-container #apca-table { width: 100%; border-collapse: collapse !important; font-size: 0.8rem; }",
     "#contrast-checker-container #apca-table thead tr { color: #6B7280; }",
-    "#contrast-checker-container #apca-table th, #contrast-checker-container #apca-table td { border: none !important; vertical-align: middle !important; line-height: 1.4 !important; }",
+    "#contrast-checker-container #apca-table th, #contrast-checker-container #apca-table td { border: 1px solid #F3F4F6 !important; vertical-align: middle !important; line-height: 1.4 !important; background-color: #ffffff !important; }",
+    "#contrast-checker-container #apca-table #apca-rec-size, #contrast-checker-container #apca-table #apca-rec-weight { border-left: 1px solid #F3F4F6 !important; border-right: 1px solid #F3F4F6 !important; border-top-color: transparent !important; border-bottom-color: transparent !important; }",
+    "#contrast-checker-container #apca-table thead th { border-bottom: 2px solid #E5E7EB !important; }",
     "#contrast-checker-container #apca-table .apca-th { text-align: center !important; font-weight: 600; padding: 0.15rem 0.25rem 0.25rem !important; }",
     "#contrast-checker-container #apca-table .apca-th-left { text-align: left !important; padding-left: 0 !important; }",
     "#contrast-checker-container #apca-table .apca-td { text-align: center !important; padding: 0.3rem 0.25rem !important; }",
@@ -1081,7 +1083,6 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
     "#contrast-checker-container #apca-table .apca-detected { font-weight: 700; }",
     "#contrast-checker-container #apca-table .apca-needed { font-weight: 700; }",
     "#contrast-checker-container #apca-table .apca-rec { color: #9CA3AF; }",
-    "#contrast-checker-container #apca-table .apca-row-border { border-top: 1px solid #F3F4F6 !important; }",
     // APCA cell state classes — toggled by JS instead of inline styles
     "#contrast-checker-container #apca-table .apca-state-pass { color: #059669 !important; }",
     "#contrast-checker-container #apca-table .apca-state-suggest { color: #92400E !important; }",
