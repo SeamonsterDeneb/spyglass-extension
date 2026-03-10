@@ -1066,21 +1066,29 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
     "#contrast-checker-container .spyglass-algo-option { display: flex; align-items: center; gap: 0.3rem; cursor: pointer; font-size: 0.8rem; color: #374151; line-height: 1.6; }",
     "#contrast-checker-container .spyglass-algo-option input { width: auto; height: auto; cursor: pointer; }",
     '#contrast-checker-container .spyglass-algo-option input[type="radio"] { appearance: auto; -webkit-appearance: radio; width: auto; height: auto; cursor: pointer; }',
-    // APCA details panel
-    "#apca-details-panel { display: none; height: 100%; align-content: start; }",
-    "#apca-details-panel .apca-panel-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #E5E7EB; margin-bottom: 0.5rem; padding-bottom: 0.25rem; }",
-    "#apca-details-panel .apca-panel-title { font-weight: 700; color: #374151; font-size: 0.9rem; }",
-    "#apca-details-panel #apca-status { font-weight: 700; font-size: 0.8rem; padding: 0.15rem 0.5rem; border-radius: 0.375rem; }",
-    "#apca-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }",
-    "#apca-table thead tr { color: #6B7280; }",
-    "#apca-table .apca-th { text-align: center; font-weight: 600; padding: 0.15rem 0.25rem 0.25rem; }",
-    "#apca-table .apca-th-left { text-align: left; padding-left: 0; }",
-    "#apca-table .apca-td { text-align: center; padding: 0.3rem 0.25rem; }",
-    "#apca-table .apca-label { text-align: left; padding-left: 0; color: #6B7280; white-space: nowrap; }",
-    "#apca-table .apca-detected { font-weight: 700; }",
-    "#apca-table .apca-needed { font-weight: 700; }",
-    "#apca-table .apca-rec { color: #9CA3AF; }",
-    "#apca-table .apca-row-border { border-top: 1px solid #F3F4F6; }",
+    // APCA details panel — high specificity to override site CSS resets
+    "#contrast-checker-container #apca-details-panel { display: none; height: 100%; align-content: start; }",
+    "#contrast-checker-container #apca-details-panel .apca-panel-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #E5E7EB; margin-bottom: 0.5rem; padding-bottom: 0.25rem; }",
+    "#contrast-checker-container #apca-details-panel .apca-panel-title { font-weight: 700; color: #374151; font-size: 0.9rem; }",
+    "#contrast-checker-container #apca-details-panel #apca-status { font-weight: 700; font-size: 0.8rem; padding: 0.15rem 0.5rem; border-radius: 0.375rem; color: white; }",
+    "#contrast-checker-container #apca-table { width: 100%; border-collapse: collapse !important; font-size: 0.8rem; }",
+    "#contrast-checker-container #apca-table thead tr { color: #6B7280; }",
+    "#contrast-checker-container #apca-table th, #contrast-checker-container #apca-table td { border: none !important; vertical-align: middle !important; line-height: 1.4 !important; }",
+    "#contrast-checker-container #apca-table .apca-th { text-align: center !important; font-weight: 600; padding: 0.15rem 0.25rem 0.25rem !important; }",
+    "#contrast-checker-container #apca-table .apca-th-left { text-align: left !important; padding-left: 0 !important; }",
+    "#contrast-checker-container #apca-table .apca-td { text-align: center !important; padding: 0.3rem 0.25rem !important; }",
+    "#contrast-checker-container #apca-table .apca-label { text-align: left !important; padding-left: 0 !important; color: #6B7280; white-space: nowrap; }",
+    "#contrast-checker-container #apca-table .apca-detected { font-weight: 700; }",
+    "#contrast-checker-container #apca-table .apca-needed { font-weight: 700; }",
+    "#contrast-checker-container #apca-table .apca-rec { color: #9CA3AF; }",
+    "#contrast-checker-container #apca-table .apca-row-border { border-top: 1px solid #F3F4F6 !important; }",
+    // APCA cell state classes — toggled by JS instead of inline styles
+    "#contrast-checker-container #apca-table .apca-state-pass { color: #059669 !important; }",
+    "#contrast-checker-container #apca-table .apca-state-suggest { color: #92400E !important; }",
+    "#contrast-checker-container #apca-table .apca-state-na { color: #9CA3AF !important; }",
+    "#contrast-checker-container #apca-table .apca-rec-active { color: #1D4ED8 !important; font-weight: 700; }",
+    "#contrast-checker-container #apca-details-panel #apca-status.apca-pass { background-color: #059669; }",
+    "#contrast-checker-container #apca-details-panel #apca-status.apca-fail { background-color: #dc2626; }",
   ].join(" ");
   styleSheet.innerText = styles;
   document.head.appendChild(styleSheet);
@@ -1688,7 +1696,9 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
       const lookupWeight = nearestWeightKey(weightNum);
 
       // --- Min Lc for current size + weight (for the Detected/MinLc row display) ---
-      const minLcRequired = minLcFor(sizeInPx, lookupWeight) ?? 100;
+      // Lc 75 is our baseline standard for body text — never recommend below it
+      const minLcFromTable = minLcFor(sizeInPx, lookupWeight) ?? 100;
+      const minLcRequired = Math.max(75, minLcFromTable);
 
       // --- Needed Size row: keep weight fixed, find smallest table size where lcNow passes ---
       // The row label is "Size" — the question is: at this weight, how big does the font need to be?
@@ -1743,23 +1753,34 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
       document.getElementById("apca-needed-size").textContent = neededSizeText;
       document.getElementById("apca-needed-weight").textContent = neededWeightText;
 
-      // Colour the needed cells: green = passes, amber = suggestion available, grey = N/A
-      const neededSizeEl = document.getElementById("apca-needed-size");
+      // Apply state classes to Needed cells instead of inline styles
+      function setNeededState(el, text) {
+        el.classList.remove("apca-state-pass", "apca-state-suggest", "apca-state-na");
+        if (text === "✓ passes") el.classList.add("apca-state-pass");
+        else if (text === "N/A")  el.classList.add("apca-state-na");
+        else                      el.classList.add("apca-state-suggest");
+      }
+      const neededSizeEl   = document.getElementById("apca-needed-size");
       const neededWeightEl = document.getElementById("apca-needed-weight");
-      neededSizeEl.style.color   = neededSizeText   === "✓ passes" ? "#059669" : neededSizeText   === "N/A" ? "#9CA3AF" : "#92400E";
-      neededWeightEl.style.color = neededWeightText === "✓ passes" ? "#059669" : neededWeightText === "N/A" ? "#9CA3AF" : "#92400E";
+      setNeededState(neededSizeEl, neededSizeText);
+      setNeededState(neededWeightEl, neededWeightText);
 
-      // --- Balanced recommendation: find the passing (size, weight) pair that
-      // minimises normalised Euclidean distance from the detected values ---
+      // --- Balanced recommendation ---
       const apcaPass = lcNow >= minLcRequired;
       const recSizeEl   = document.getElementById("apca-rec-size");
       const recWeightEl = document.getElementById("apca-rec-weight");
 
+      function setRecState(sizeEl, weightEl, sizeText, weightText, stateClass) {
+        [sizeEl, weightEl].forEach(el => {
+          el.classList.remove("apca-state-pass", "apca-state-na", "apca-rec-active");
+          if (stateClass) el.classList.add(stateClass);
+        });
+        sizeEl.textContent   = sizeText;
+        weightEl.textContent = weightText;
+      }
+
       if (apcaPass) {
-        recSizeEl.textContent   = "✓";
-        recWeightEl.textContent = "✓";
-        recSizeEl.style.color   = "#059669";
-        recWeightEl.style.color = "#059669";
+        setRecState(recSizeEl, recWeightEl, "✓", "✓", "apca-state-pass");
       } else {
         let bestRec = null;
         let bestScore = Infinity;
@@ -1769,36 +1790,24 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
           for (const wk of apcaWeightKeys) {
             const threshold = row[wk];
             if (threshold == null || lcNow < threshold) continue;
-            // Only consider combos that are >= detected (no going backwards)
             if (sizePx < sizeInPx || wk < weightNum) continue;
-            const sizeDelta   = (sizePx - sizeInPx)  / sizeInPx;
-            const weightDelta = (wk     - weightNum)  / weightNum;
+            const sizeDelta   = (sizePx - sizeInPx) / sizeInPx;
+            const weightDelta = (wk - weightNum)     / weightNum;
             const score = Math.sqrt(sizeDelta * sizeDelta + weightDelta * weightDelta);
-            if (score < bestScore) {
-              bestScore = score;
-              bestRec = { sizePx, wk };
-            }
+            if (score < bestScore) { bestScore = score; bestRec = { sizePx, wk }; }
           }
         }
         if (bestRec) {
-          recSizeEl.textContent   = `${bestRec.sizePx}px`;
-          recWeightEl.textContent = `${bestRec.wk}`;
-          recSizeEl.style.color   = "#1D4ED8";
-          recWeightEl.style.color = "#1D4ED8";
-          recSizeEl.style.fontWeight   = "700";
-          recWeightEl.style.fontWeight = "700";
+          setRecState(recSizeEl, recWeightEl, `${bestRec.sizePx}px`, `${bestRec.wk}`, "apca-rec-active");
         } else {
-          recSizeEl.textContent   = "N/A";
-          recWeightEl.textContent = "N/A";
-          recSizeEl.style.color   = "#9CA3AF";
-          recWeightEl.style.color = "#9CA3AF";
+          setRecState(recSizeEl, recWeightEl, "N/A", "N/A", "apca-state-na");
         }
       }
 
       const apcaStatusEl = document.getElementById("apca-status");
       apcaStatusEl.textContent = apcaPass ? "PASS" : "FAIL";
-      apcaStatusEl.style.backgroundColor = apcaPass ? "#059669" : "#dc2626";
-      apcaStatusEl.style.color = "white";
+      apcaStatusEl.classList.remove("apca-pass", "apca-fail");
+      apcaStatusEl.classList.add(apcaPass ? "apca-pass" : "apca-fail");
 
       calculatedRatioColor = apcaPass ? "#059669" : "#dc2626";
 
