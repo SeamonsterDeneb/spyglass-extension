@@ -967,11 +967,11 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
                                       <td style="text-align: center; padding: 0.3rem 0.25rem; font-weight: 700;" id="apca-needed-size">-</td>
                                       <td style="text-align: center; padding: 0.3rem 0.25rem; color: #9CA3AF;" id="apca-rec-size">—</td>
                                     </tr>
-                                    <tr style="border-top: 1px solid #F3F4F6;">
-                                      <td style="padding: 0.3rem 0.25rem 0.3rem 0; color: #6B7280; white-space: nowrap;">Weight</td>
-                                      <td style="text-align: center; padding: 0.3rem 0.25rem; font-weight: 700;" id="apca-font-weight">-</td>
-                                      <td style="text-align: center; padding: 0.3rem 0.25rem;" id="apca-min-lc-weight">-</td>
-                                      <td style="text-align: center; padding: 0.3rem 0.25rem; font-weight: 700;" id="apca-needed-weight">-</td>
+                                    <tr>
+                                      <td style="padding: 0.3rem 0.25rem 0.3rem 0; color: #6B7280; white-space: nowrap; border-top: 1px solid #F3F4F6;">Weight</td>
+                                      <td style="text-align: center; padding: 0.3rem 0.25rem; font-weight: 700; border-top: 1px solid #F3F4F6;" id="apca-font-weight">-</td>
+                                      <td style="text-align: center; padding: 0.3rem 0.25rem; border-top: 1px solid #F3F4F6;" id="apca-min-lc-weight">-</td>
+                                      <td style="text-align: center; padding: 0.3rem 0.25rem; font-weight: 700; border-top: 1px solid #F3F4F6;" id="apca-needed-weight">-</td>
                                       <td style="text-align: center; padding: 0.3rem 0.25rem; color: #9CA3AF;" id="apca-rec-weight">—</td>
                                     </tr>
                                   </tbody>
@@ -1739,8 +1739,6 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
       const apcaPass = lcNow >= minLcRequired;
       const recSizeEl   = document.getElementById("apca-rec-size");
       const recWeightEl = document.getElementById("apca-rec-weight");
-      // Remove the divider between the two rec cells so they read as one joint answer
-      recWeightEl.closest("tr").style.borderTop = "none";
 
       if (apcaPass) {
         recSizeEl.textContent   = "✓";
