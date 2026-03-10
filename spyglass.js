@@ -1716,18 +1716,7 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
         if (lightestPassingWeight != null) {
           neededWeightText = `≥ ${lightestPassingWeight}`;
         } else {
-          // No weight at this size can pass — find smallest size at heaviest weight (900)
-          let neededSizeAt900 = null;
-          for (const size of [...sortedSizes].reverse()) {
-            const row = apcaThresholds[size];
-            if (row && row[900] != null && lcNow >= row[900]) {
-              neededSizeAt900 = size;
-              break;
-            }
-          }
-          neededWeightText = neededSizeAt900 != null
-            ? `900 ≥ ${neededSizeAt900}px`
-            : "N/A";
+          neededWeightText = "N/A";
         }
       }
 
