@@ -1579,14 +1579,22 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
     );
 
     // Define APCA thresholds
+    // Full APCA Bronze lookup table: size (px) -> weight -> minimum Lc required
+    // Source: APCA Readability Criterion, Bronze conformance level
+    // A value of 0 means that weight/size combo is not usable for body text per APCA.
     const apcaThresholds = {
-      12: { 400: 80, 700: 70 },
-      14: { 400: 75, 700: 60 },
-      16: { 400: 70, 700: 55 },
-      18: { 400: 65, 700: 50 },
-      24: { 400: 60, 700: 45 },
-      32: { 400: 55, 700: 40 }, // Represents 32px+
+      10: { 400: 100, 500: 100, 600:  90, 700:  80, 800:  80, 900:  80 },
+      12: { 300: 100, 400:  90, 500:  75, 600:  70, 700:  60, 800:  60, 900:  60 },
+      14: { 300:  90, 400:  75, 500:  70, 600:  60, 700:  55, 800:  55, 900:  55 },
+      16: { 200: 100, 300:  75, 400:  70, 500:  60, 600:  55, 700:  50, 800:  50, 900:  50 },
+      18: { 200:  90, 300:  70, 400:  65, 500:  55, 600:  50, 700:  45, 800:  45, 900:  45 },
+      24: { 200:  75, 300:  60, 400:  60, 500:  50, 600:  45, 700:  40, 800:  40, 900:  40 },
+      36: { 200:  60, 300:  50, 400:  50, 500:  45, 600:  40, 700:  35, 800:  35, 900:  35 },
+      48: { 200:  50, 300:  45, 400:  45, 500:  40, 600:  35, 700:  30, 800:  30, 900:  30 },
+      96: { 200:  40, 300:  38, 400:  38, 500:  35, 600:  30, 700:  25, 800:  25, 900:  25 },
     };
+    // Canonical weight values in the table (for finding nearest lookup weight)
+    const apcaWeightKeys = [200, 300, 400, 500, 600, 700, 800, 900];
 
     let calculatedRatioColor;
 
@@ -1634,95 +1642,107 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
       let weightNum = parseInt(currentFontWeight, 10);
       const lcNow = Math.abs(contrast);
 
-      // Bucket the actual weight into the two APCA lookup weights
-      let effectiveLookupWeight = weightNum >= 550 ? 700 : 400;
-      const altLookupWeight = effectiveLookupWeight === 700 ? 400 : 700;
-
       const sortedSizes = Object.keys(apcaThresholds)
         .map(Number)
         .sort((a, b) => a - b);
 
-      // --- Find minLcRequired for current size + weight ---
-      let foundSizeThreshold = sortedSizes[0];
-      for (const size of sortedSizes) {
-        if (sizeInPx >= size) foundSizeThreshold = size;
-        else break;
+      // Find the nearest weight column in the table at or below the detected weight.
+      // e.g. weight 300 -> 300 column; weight 350 -> 300; weight 650 -> 600.
+      function nearestWeightKey(w) {
+        let best = apcaWeightKeys[0];
+        for (const k of apcaWeightKeys) {
+          if (k <= w) best = k;
+          else break;
+        }
+        return best;
       }
-      const minLcRequired =
-        (apcaThresholds[foundSizeThreshold] &&
-          apcaThresholds[foundSizeThreshold][effectiveLookupWeight]) ||
-        80;
 
-      // --- Needed Size: smallest table size where current Lc passes, keeping weight fixed ---
+      // Return the minLc for a given px size and weight, or null if that weight
+      // doesn't appear in the table at that size (i.e. not usable).
+      function minLcFor(sizePx, weightKey) {
+        // Find the size bucket for sizePx
+        let bucket = sortedSizes[0];
+        for (const s of sortedSizes) {
+          if (sizePx >= s) bucket = s;
+          else break;
+        }
+        const row = apcaThresholds[bucket];
+        return (row && row[weightKey] != null) ? row[weightKey] : null;
+      }
+
+      const lookupWeight = nearestWeightKey(weightNum);
+
+      // --- Min Lc for current size + weight (for the Detected/MinLc row display) ---
+      const minLcRequired = minLcFor(sizeInPx, lookupWeight) ?? 100;
+
+      // --- Needed Size row: keep weight fixed, find smallest table size where lcNow passes ---
+      // The row label is "Size" — the question is: at this weight, how big does the font need to be?
       let neededSizeText;
       if (lcNow >= minLcRequired) {
         neededSizeText = "✓ passes";
       } else {
-        // Walk DOWN the table from largest size — find the first (largest) size whose
-        // threshold the current Lc meets. That means the text would need to be AT LEAST that big.
+        // Walk from largest size downward; the first one where lcNow >= threshold
+        // is the minimum size needed (we report the table boundary, ≥ that size).
         let neededSize = null;
         for (const size of [...sortedSizes].reverse()) {
-          const threshold = apcaThresholds[size][effectiveLookupWeight];
-          if (lcNow >= threshold) {
+          const row = apcaThresholds[size];
+          if (!row || row[lookupWeight] == null) continue;
+          if (lcNow >= row[lookupWeight]) {
             neededSize = size;
             break;
           }
         }
-        if (neededSize !== null) {
-          neededSizeText = `≥ ${neededSize}px`;
-        } else {
-          neededSizeText = "N/A";
-        }
+        neededSizeText = neededSize != null ? `≥ ${neededSize}px` : "N/A";
       }
 
-      // --- Needed Weight: can switching weight class help at current size? ---
-      // Min Lc for the current size at the OTHER weight
-      const minLcAltWeight =
-        (apcaThresholds[foundSizeThreshold] &&
-          apcaThresholds[foundSizeThreshold][altLookupWeight]) ||
-        80;
-
-      // Min Lc for current size at current weight (for the weight row label)
-      const minLcSameWeight = minLcRequired;
-
+      // --- Needed Weight row: keep size fixed, find what weight is needed ---
+      // The question is: at the detected size, what weight (column) requires an Lc
+      // that lcNow can meet? Report the lightest (lowest) such weight.
       let neededWeightText;
+      const minLcSameWeight = minLcRequired; // for the Min Lc cell in the weight row
       if (lcNow >= minLcRequired) {
         neededWeightText = "✓ passes";
-      } else if (lcNow >= minLcAltWeight) {
-        // Switching weight class at the same size would pass
-        const altWeightDisplay = altLookupWeight === 700 ? "Bold (700)" : "Regular (400)";
-        neededWeightText = altWeightDisplay;
       } else {
-        // Even the other weight at this size doesn't pass — find the smallest size
-        // where the other weight passes, then report that combo
-        let neededSizeForAltWeight = null;
-        for (const size of [...sortedSizes].reverse()) {
-          const threshold = apcaThresholds[size][altLookupWeight];
-          if (lcNow >= threshold) {
-            neededSizeForAltWeight = size;
-            break;
+        // Walk weight keys from heaviest to lightest; the heaviest one that still
+        // has a threshold lcNow can meet gives us the lightest usable weight.
+        // (Heavier weights have lower thresholds at the same size.)
+        let lightestPassingWeight = null;
+        for (const wk of [...apcaWeightKeys].reverse()) {
+          const threshold = minLcFor(sizeInPx, wk);
+          if (threshold != null && lcNow >= threshold) {
+            lightestPassingWeight = wk;
           }
         }
-        if (neededSizeForAltWeight !== null) {
-          const altLabel = altLookupWeight === 700 ? "Bold" : "Regular";
-          neededWeightText = `${altLabel} ≥ ${neededSizeForAltWeight}px`;
+        if (lightestPassingWeight != null) {
+          neededWeightText = `≥ ${lightestPassingWeight}`;
         } else {
-          neededWeightText = "N/A";
+          // No weight at this size can pass — find smallest size at heaviest weight (900)
+          let neededSizeAt900 = null;
+          for (const size of [...sortedSizes].reverse()) {
+            const row = apcaThresholds[size];
+            if (row && row[900] != null && lcNow >= row[900]) {
+              neededSizeAt900 = size;
+              break;
+            }
+          }
+          neededWeightText = neededSizeAt900 != null
+            ? `900 ≥ ${neededSizeAt900}px`
+            : "N/A";
         }
       }
 
       // Populate table cells
       document.getElementById("apca-font-size").textContent = currentFontSize;
       document.getElementById("apca-font-weight").textContent = currentFontWeight;
-      document.getElementById("apca-min-lc").textContent = `Lc ${minLcRequired.toFixed(0)}`;
-      document.getElementById("apca-min-lc-weight").textContent = `Lc ${minLcSameWeight.toFixed(0)}`;
+      document.getElementById("apca-min-lc").textContent = `Lc ${minLcRequired}`;
+      document.getElementById("apca-min-lc-weight").textContent = `Lc ${minLcSameWeight}`;
       document.getElementById("apca-needed-size").textContent = neededSizeText;
       document.getElementById("apca-needed-weight").textContent = neededWeightText;
 
-      // Style the needed cells green on pass, amber on suggestion, grey on N/A
+      // Colour the needed cells: green = passes, amber = suggestion available, grey = N/A
       const neededSizeEl = document.getElementById("apca-needed-size");
       const neededWeightEl = document.getElementById("apca-needed-weight");
-      neededSizeEl.style.color = neededSizeText === "✓ passes" ? "#059669" : neededSizeText === "N/A" ? "#9CA3AF" : "#92400E";
+      neededSizeEl.style.color   = neededSizeText   === "✓ passes" ? "#059669" : neededSizeText   === "N/A" ? "#9CA3AF" : "#92400E";
       neededWeightEl.style.color = neededWeightText === "✓ passes" ? "#059669" : neededWeightText === "N/A" ? "#9CA3AF" : "#92400E";
 
       const apcaPass = lcNow >= minLcRequired;
