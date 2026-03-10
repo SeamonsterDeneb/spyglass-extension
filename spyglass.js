@@ -945,19 +945,37 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
 
                               <!-- APCA Details (Hidden by default) -->
                               <div id="apca-details-panel" style="display: none; height: 100%; align-content: start;">
-                                <div style="font-weight: 700; color: #374151; border-bottom: 1px solid #E5E7EB; margin-bottom: 0.5rem; padding-bottom: 0.25rem;">APCA Requirements (Bronze)</div>
-                                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.9rem; align-items: baseline;">
-                                  <span>Detected Font Size:</span> <span id="apca-font-size" style="font-weight: 700;">-</span>
+                                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #E5E7EB; margin-bottom: 0.5rem; padding-bottom: 0.25rem;">
+                                  <span style="font-weight: 700; color: #374151; font-size: 0.9rem;">APCA Requirements (Bronze)</span>
+                                  <span id="apca-status" style="font-weight: 700; font-size: 0.8rem; padding: 0.15rem 0.5rem; border-radius: 0.375rem;"></span>
                                 </div>
-                                <div style="display: flex; justify-content: space-between; margin-bottom: 1rem; font-size: 0.9rem; align-items: baseline;">
-                                  <span>Detected Font Weight:</span> <span id="apca-font-weight" style="font-weight: 700;">-</span>
-                                </div>
-                                <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem; font-size: 1rem; align-items: baseline;">
-                                  <span id="apca-threshold-label">Minimum Lc:</span> <span id="apca-min-lc" style="font-weight: 700;">-</span>
-                                </div>
-                                <div style="text-align: center; margin-top: 1rem;">
-                                  <span id="apca-status" style="font-weight: 700; font-size: 1.25rem; padding: 0.5rem 1rem; border-radius: 0.5rem;"></span>
-                                </div>
+                                <table id="apca-table" style="width: 100%; border-collapse: collapse; font-size: 0.8rem;">
+                                  <thead>
+                                    <tr style="color: #6B7280;">
+                                      <th style="text-align: left; font-weight: 600; padding: 0.15rem 0.25rem 0.25rem 0;">Property</th>
+                                      <th style="text-align: center; font-weight: 600; padding: 0.15rem 0.25rem 0.25rem;">Detected</th>
+                                      <th style="text-align: center; font-weight: 600; padding: 0.15rem 0.25rem 0.25rem;">Min Lc</th>
+                                      <th style="text-align: center; font-weight: 600; padding: 0.15rem 0.25rem 0.25rem;">Needed</th>
+                                      <th style="text-align: center; font-weight: 600; padding: 0.15rem 0.25rem 0.25rem;">Recommended</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    <tr style="border-top: 1px solid #F3F4F6;">
+                                      <td style="padding: 0.3rem 0.25rem 0.3rem 0; color: #6B7280; white-space: nowrap;">Size</td>
+                                      <td style="text-align: center; padding: 0.3rem 0.25rem; font-weight: 700;" id="apca-font-size">-</td>
+                                      <td style="text-align: center; padding: 0.3rem 0.25rem;" id="apca-min-lc">-</td>
+                                      <td style="text-align: center; padding: 0.3rem 0.25rem; font-weight: 700;" id="apca-needed-size">-</td>
+                                      <td style="text-align: center; padding: 0.3rem 0.25rem; color: #9CA3AF;" id="apca-rec-size">—</td>
+                                    </tr>
+                                    <tr style="border-top: 1px solid #F3F4F6;">
+                                      <td style="padding: 0.3rem 0.25rem 0.3rem 0; color: #6B7280; white-space: nowrap;">Weight</td>
+                                      <td style="text-align: center; padding: 0.3rem 0.25rem; font-weight: 700;" id="apca-font-weight">-</td>
+                                      <td style="text-align: center; padding: 0.3rem 0.25rem;" id="apca-min-lc-weight">-</td>
+                                      <td style="text-align: center; padding: 0.3rem 0.25rem; font-weight: 700;" id="apca-needed-weight">-</td>
+                                      <td style="text-align: center; padding: 0.3rem 0.25rem; color: #9CA3AF;" id="apca-rec-weight">—</td>
+                                    </tr>
+                                  </tbody>
+                                </table>
                               </div>
                           </div>
 
@@ -1612,44 +1630,102 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
       document.getElementById("wcag-details-grid").style.display = "none";
       document.getElementById("apca-details-panel").style.display = "block";
 
-      document.getElementById("apca-font-size").textContent = currentFontSize;
-      document.getElementById("apca-font-weight").textContent =
-        currentFontWeight;
-
       let sizeInPx = parseFloat(currentFontSize);
       let weightNum = parseInt(currentFontWeight, 10);
+      const lcNow = Math.abs(contrast);
 
-      // Determine the effective weight to use for lookup (400 or 700)
+      // Bucket the actual weight into the two APCA lookup weights
       let effectiveLookupWeight = weightNum >= 550 ? 700 : 400;
+      const altLookupWeight = effectiveLookupWeight === 700 ? 400 : 700;
 
-      let minLcRequired = 0;
       const sortedSizes = Object.keys(apcaThresholds)
         .map(Number)
         .sort((a, b) => a - b);
 
-      let foundSizeThreshold = sortedSizes[0]; // Default to smallest size (12px) for sizes below min table entry
+      // --- Find minLcRequired for current size + weight ---
+      let foundSizeThreshold = sortedSizes[0];
       for (const size of sortedSizes) {
-        if (sizeInPx >= size) {
-          foundSizeThreshold = size;
+        if (sizeInPx >= size) foundSizeThreshold = size;
+        else break;
+      }
+      const minLcRequired =
+        (apcaThresholds[foundSizeThreshold] &&
+          apcaThresholds[foundSizeThreshold][effectiveLookupWeight]) ||
+        80;
+
+      // --- Needed Size: smallest table size where current Lc passes, keeping weight fixed ---
+      let neededSizeText;
+      if (lcNow >= minLcRequired) {
+        neededSizeText = "✓ passes";
+      } else {
+        // Walk DOWN the table from largest size — find the first (largest) size whose
+        // threshold the current Lc meets. That means the text would need to be AT LEAST that big.
+        let neededSize = null;
+        for (const size of [...sortedSizes].reverse()) {
+          const threshold = apcaThresholds[size][effectiveLookupWeight];
+          if (lcNow >= threshold) {
+            neededSize = size;
+            break;
+          }
+        }
+        if (neededSize !== null) {
+          neededSizeText = `≥ ${neededSize}px`;
         } else {
-          break; // Current size is smaller than 'size', so foundSizeThreshold holds the correct bucket
+          neededSizeText = "N/A";
         }
       }
 
-      if (
-        apcaThresholds[foundSizeThreshold] &&
-        apcaThresholds[foundSizeThreshold][effectiveLookupWeight]
-      ) {
-        minLcRequired =
-          apcaThresholds[foundSizeThreshold][effectiveLookupWeight];
+      // --- Needed Weight: can switching weight class help at current size? ---
+      // Min Lc for the current size at the OTHER weight
+      const minLcAltWeight =
+        (apcaThresholds[foundSizeThreshold] &&
+          apcaThresholds[foundSizeThreshold][altLookupWeight]) ||
+        80;
+
+      // Min Lc for current size at current weight (for the weight row label)
+      const minLcSameWeight = minLcRequired;
+
+      let neededWeightText;
+      if (lcNow >= minLcRequired) {
+        neededWeightText = "✓ passes";
+      } else if (lcNow >= minLcAltWeight) {
+        // Switching weight class at the same size would pass
+        const altWeightDisplay = altLookupWeight === 700 ? "Bold (700)" : "Regular (400)";
+        neededWeightText = altWeightDisplay;
       } else {
-        // Fallback if no specific threshold found for the effective weight or size.
-        minLcRequired = 80; // Lc 80 (12px, 400 weight)
+        // Even the other weight at this size doesn't pass — find the smallest size
+        // where the other weight passes, then report that combo
+        let neededSizeForAltWeight = null;
+        for (const size of [...sortedSizes].reverse()) {
+          const threshold = apcaThresholds[size][altLookupWeight];
+          if (lcNow >= threshold) {
+            neededSizeForAltWeight = size;
+            break;
+          }
+        }
+        if (neededSizeForAltWeight !== null) {
+          const altLabel = altLookupWeight === 700 ? "Bold" : "Regular";
+          neededWeightText = `${altLabel} ≥ ${neededSizeForAltWeight}px`;
+        } else {
+          neededWeightText = "N/A";
+        }
       }
 
-      document.getElementById("apca-min-lc").textContent =
-        `Lc ${minLcRequired.toFixed(1)}`;
-      const apcaPass = Math.abs(contrast) >= minLcRequired;
+      // Populate table cells
+      document.getElementById("apca-font-size").textContent = currentFontSize;
+      document.getElementById("apca-font-weight").textContent = currentFontWeight;
+      document.getElementById("apca-min-lc").textContent = `Lc ${minLcRequired.toFixed(0)}`;
+      document.getElementById("apca-min-lc-weight").textContent = `Lc ${minLcSameWeight.toFixed(0)}`;
+      document.getElementById("apca-needed-size").textContent = neededSizeText;
+      document.getElementById("apca-needed-weight").textContent = neededWeightText;
+
+      // Style the needed cells green on pass, amber on suggestion, grey on N/A
+      const neededSizeEl = document.getElementById("apca-needed-size");
+      const neededWeightEl = document.getElementById("apca-needed-weight");
+      neededSizeEl.style.color = neededSizeText === "✓ passes" ? "#059669" : neededSizeText === "N/A" ? "#9CA3AF" : "#92400E";
+      neededWeightEl.style.color = neededWeightText === "✓ passes" ? "#059669" : neededWeightText === "N/A" ? "#9CA3AF" : "#92400E";
+
+      const apcaPass = lcNow >= minLcRequired;
       const apcaStatusEl = document.getElementById("apca-status");
       apcaStatusEl.textContent = apcaPass ? "PASS" : "FAIL";
       apcaStatusEl.style.backgroundColor = apcaPass ? "#059669" : "#dc2626";
