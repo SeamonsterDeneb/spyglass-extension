@@ -1719,7 +1719,7 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
             break;
           }
         }
-        neededSizeText = neededSize != null ? `≥ ${neededSize}px` : "N/A";
+        neededSizeText = neededSize != null ? `${neededSize}px` : "N/A";
       }
 
       // --- Needed Weight row: keep size fixed, find what weight is needed ---
@@ -1741,7 +1741,7 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
           }
         }
         if (lightestPassingWeight != null) {
-          neededWeightText = `≥ ${lightestPassingWeight}`;
+          neededWeightText = `${lightestPassingWeight}`;
         } else {
           neededWeightText = "N/A";
         }
