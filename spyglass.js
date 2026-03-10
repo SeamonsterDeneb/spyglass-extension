@@ -1668,8 +1668,6 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
 
         const fgSuggestionHex = adjustLuminanceAPCA(fgRgba, bgRgba, apcaSuggestionTarget, true);
         const bgSuggestionHex = adjustLuminanceAPCA(bgRgba, fgRgba, apcaSuggestionTarget, false);
-        console.log('[Spyglass APCA] fgRgba:', JSON.stringify(fgRgba), 'bgRgba:', JSON.stringify(bgRgba));
-        console.log('[Spyglass APCA] fgSuggestionHex:', fgSuggestionHex, 'bgSuggestionHex:', bgSuggestionHex);
 
         // Verify fg suggestion — same compositing as inside adjustLuminanceAPCA:
         // suggested FG over solid BG (other color composited over white)
@@ -1677,7 +1675,6 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
         const verifyFgSolidBg = blendRgb(bgRgba, baseWhite);
         const verifyFgSolidFg = blendRgb(suggestedFgRgba, verifyFgSolidBg);
         const newFgContrast = getAPCAContrast(verifyFgSolidFg, verifyFgSolidBg);
-        console.log('[Spyglass APCA] suggestedFgRgba:', JSON.stringify(suggestedFgRgba), 'newFgContrast:', newFgContrast);
 
         fgSuggestionBox.querySelector("span").style.display = "block";
         if (newFgContrast >= apcaSuggestionTarget) {
@@ -2440,9 +2437,13 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
             lo = mid;
           }
         }
-        adjustedColor = { ...colorRgba, a: bestAlpha };
+        // Ceil the alpha to the next 8-bit integer so quantization never
+        // drops the result just under the threshold during verification.
+        const ceilAlpha = Math.min(1, Math.ceil(bestAlpha * 255) / 255);
+        adjustedColor = { ...colorRgba, a: ceilAlpha };
         const hex = rgbToHex(adjustedColor.r, adjustedColor.g, adjustedColor.b);
-        const alphaHex = Math.round(bestAlpha * 255).toString(16).padStart(2, "0").toUpperCase();
+        const alphaInt = Math.round(ceilAlpha * 255);
+        const alphaHex = alphaInt.toString(16).padStart(2, "0").toUpperCase();
         return alphaHex === "FF" ? hex : hex + alphaHex;
       }
       // Alpha adjustment alone wasn't enough — proceed with fully opaque version
