@@ -1734,7 +1734,54 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
       neededSizeEl.style.color   = neededSizeText   === "✓ passes" ? "#059669" : neededSizeText   === "N/A" ? "#9CA3AF" : "#92400E";
       neededWeightEl.style.color = neededWeightText === "✓ passes" ? "#059669" : neededWeightText === "N/A" ? "#9CA3AF" : "#92400E";
 
+      // --- Balanced recommendation: find the passing (size, weight) pair that
+      // minimises normalised Euclidean distance from the detected values ---
       const apcaPass = lcNow >= minLcRequired;
+      const recSizeEl   = document.getElementById("apca-rec-size");
+      const recWeightEl = document.getElementById("apca-rec-weight");
+      // Remove the divider between the two rec cells so they read as one joint answer
+      recWeightEl.closest("tr").style.borderTop = "none";
+
+      if (apcaPass) {
+        recSizeEl.textContent   = "✓";
+        recWeightEl.textContent = "✓";
+        recSizeEl.style.color   = "#059669";
+        recWeightEl.style.color = "#059669";
+      } else {
+        let bestRec = null;
+        let bestScore = Infinity;
+        for (const sizePx of sortedSizes) {
+          const row = apcaThresholds[sizePx];
+          if (!row) continue;
+          for (const wk of apcaWeightKeys) {
+            const threshold = row[wk];
+            if (threshold == null || lcNow < threshold) continue;
+            // Only consider combos that are >= detected (no going backwards)
+            if (sizePx < sizeInPx || wk < weightNum) continue;
+            const sizeDelta   = (sizePx - sizeInPx)  / sizeInPx;
+            const weightDelta = (wk     - weightNum)  / weightNum;
+            const score = Math.sqrt(sizeDelta * sizeDelta + weightDelta * weightDelta);
+            if (score < bestScore) {
+              bestScore = score;
+              bestRec = { sizePx, wk };
+            }
+          }
+        }
+        if (bestRec) {
+          recSizeEl.textContent   = `${bestRec.sizePx}px`;
+          recWeightEl.textContent = `${bestRec.wk}`;
+          recSizeEl.style.color   = "#1D4ED8";
+          recWeightEl.style.color = "#1D4ED8";
+          recSizeEl.style.fontWeight   = "700";
+          recWeightEl.style.fontWeight = "700";
+        } else {
+          recSizeEl.textContent   = "N/A";
+          recWeightEl.textContent = "N/A";
+          recSizeEl.style.color   = "#9CA3AF";
+          recWeightEl.style.color = "#9CA3AF";
+        }
+      }
+
       const apcaStatusEl = document.getElementById("apca-status");
       apcaStatusEl.textContent = apcaPass ? "PASS" : "FAIL";
       apcaStatusEl.style.backgroundColor = apcaPass ? "#059669" : "#dc2626";
