@@ -1668,12 +1668,16 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
 
         const fgSuggestionHex = adjustLuminanceAPCA(fgRgba, bgRgba, apcaSuggestionTarget, true);
         const bgSuggestionHex = adjustLuminanceAPCA(bgRgba, fgRgba, apcaSuggestionTarget, false);
+        console.log('[Spyglass APCA] fgRgba:', JSON.stringify(fgRgba), 'bgRgba:', JSON.stringify(bgRgba));
+        console.log('[Spyglass APCA] fgSuggestionHex:', fgSuggestionHex, 'bgSuggestionHex:', bgSuggestionHex);
 
-        // Verify fg suggestion
+        // Verify fg suggestion — same compositing as inside adjustLuminanceAPCA:
+        // suggested FG over solid BG (other color composited over white)
         const suggestedFgRgba = hexToRgba(fgSuggestionHex);
         const verifyFgSolidBg = blendRgb(bgRgba, baseWhite);
         const verifyFgSolidFg = blendRgb(suggestedFgRgba, verifyFgSolidBg);
         const newFgContrast = getAPCAContrast(verifyFgSolidFg, verifyFgSolidBg);
+        console.log('[Spyglass APCA] suggestedFgRgba:', JSON.stringify(suggestedFgRgba), 'newFgContrast:', newFgContrast);
 
         fgSuggestionBox.querySelector("span").style.display = "block";
         if (newFgContrast >= apcaSuggestionTarget) {
@@ -1691,7 +1695,8 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
           fgSuggestionBox.title = "Cannot find a passing color";
         }
 
-        // Verify bg suggestion
+        // Verify bg suggestion — same compositing as inside adjustLuminanceAPCA:
+        // original FG (resolved to solid over the new bg) over suggested BG over white
         const suggestedBgRgba = hexToRgba(bgSuggestionHex);
         const verifyBgSolidBg = blendRgb(suggestedBgRgba, baseWhite);
         const verifyBgSolidFg = blendRgb(fgRgba, verifyBgSolidBg);
