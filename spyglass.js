@@ -944,35 +944,35 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
                               </div>
 
                               <!-- APCA Details (Hidden by default) -->
-                              <div id="apca-details-panel" style="display: none; height: 100%; align-content: start;">
-                                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #E5E7EB; margin-bottom: 0.5rem; padding-bottom: 0.25rem;">
-                                  <span style="font-weight: 700; color: #374151; font-size: 0.9rem;">APCA Requirements (Bronze)</span>
-                                  <span id="apca-status" style="font-weight: 700; font-size: 0.8rem; padding: 0.15rem 0.5rem; border-radius: 0.375rem;"></span>
+                              <div id="apca-details-panel">
+                                <div class="apca-panel-header">
+                                  <span class="apca-panel-title">APCA Requirements (Bronze)</span>
+                                  <span id="apca-status"></span>
                                 </div>
-                                <table id="apca-table" style="width: 100%; border-collapse: collapse; font-size: 0.8rem;">
+                                <table id="apca-table">
                                   <thead>
-                                    <tr style="color: #6B7280;">
-                                      <th style="text-align: left; font-weight: 600; padding: 0.15rem 0.25rem 0.25rem 0;">Property</th>
-                                      <th style="text-align: center; font-weight: 600; padding: 0.15rem 0.25rem 0.25rem;">Detected</th>
-                                      <th style="text-align: center; font-weight: 600; padding: 0.15rem 0.25rem 0.25rem;">Min Lc</th>
-                                      <th style="text-align: center; font-weight: 600; padding: 0.15rem 0.25rem 0.25rem;">Needed</th>
-                                      <th style="text-align: center; font-weight: 600; padding: 0.15rem 0.25rem 0.25rem;">Recommended</th>
+                                    <tr>
+                                      <th class="apca-th apca-th-left">Property</th>
+                                      <th class="apca-th">Detected</th>
+                                      <th class="apca-th">Min Lc</th>
+                                      <th class="apca-th">Needed</th>
+                                      <th class="apca-th">Recommended</th>
                                     </tr>
                                   </thead>
                                   <tbody>
-                                    <tr style="border-top: 1px solid #F3F4F6;">
-                                      <td style="padding: 0.3rem 0.25rem 0.3rem 0; color: #6B7280; white-space: nowrap;">Size</td>
-                                      <td style="text-align: center; padding: 0.3rem 0.25rem; font-weight: 700;" id="apca-font-size">-</td>
-                                      <td style="text-align: center; padding: 0.3rem 0.25rem;" id="apca-min-lc">-</td>
-                                      <td style="text-align: center; padding: 0.3rem 0.25rem; font-weight: 700;" id="apca-needed-size">-</td>
-                                      <td style="text-align: center; padding: 0.3rem 0.25rem; color: #9CA3AF;" id="apca-rec-size">—</td>
+                                    <tr>
+                                      <td class="apca-td apca-label">Size</td>
+                                      <td class="apca-td apca-detected" id="apca-font-size">-</td>
+                                      <td class="apca-td" id="apca-min-lc">-</td>
+                                      <td class="apca-td apca-needed" id="apca-needed-size">-</td>
+                                      <td class="apca-td apca-rec" id="apca-rec-size">—</td>
                                     </tr>
                                     <tr>
-                                      <td style="padding: 0.3rem 0.25rem 0.3rem 0; color: #6B7280; white-space: nowrap; border-top: 1px solid #F3F4F6;">Weight</td>
-                                      <td style="text-align: center; padding: 0.3rem 0.25rem; font-weight: 700; border-top: 1px solid #F3F4F6;" id="apca-font-weight">-</td>
-                                      <td style="text-align: center; padding: 0.3rem 0.25rem; border-top: 1px solid #F3F4F6;" id="apca-min-lc-weight">-</td>
-                                      <td style="text-align: center; padding: 0.3rem 0.25rem; font-weight: 700; border-top: 1px solid #F3F4F6;" id="apca-needed-weight">-</td>
-                                      <td style="text-align: center; padding: 0.3rem 0.25rem; color: #9CA3AF;" id="apca-rec-weight">—</td>
+                                      <td class="apca-td apca-label apca-row-border">Weight</td>
+                                      <td class="apca-td apca-detected apca-row-border" id="apca-font-weight">-</td>
+                                      <td class="apca-td apca-row-border" id="apca-min-lc-weight">-</td>
+                                      <td class="apca-td apca-needed apca-row-border" id="apca-needed-weight">-</td>
+                                      <td class="apca-td apca-rec" id="apca-rec-weight">—</td>
                                     </tr>
                                   </tbody>
                                 </table>
@@ -1066,6 +1066,21 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
     "#contrast-checker-container .spyglass-algo-option { display: flex; align-items: center; gap: 0.3rem; cursor: pointer; font-size: 0.8rem; color: #374151; line-height: 1.6; }",
     "#contrast-checker-container .spyglass-algo-option input { width: auto; height: auto; cursor: pointer; }",
     '#contrast-checker-container .spyglass-algo-option input[type="radio"] { appearance: auto; -webkit-appearance: radio; width: auto; height: auto; cursor: pointer; }',
+    // APCA details panel
+    "#apca-details-panel { display: none; height: 100%; align-content: start; }",
+    "#apca-details-panel .apca-panel-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #E5E7EB; margin-bottom: 0.5rem; padding-bottom: 0.25rem; }",
+    "#apca-details-panel .apca-panel-title { font-weight: 700; color: #374151; font-size: 0.9rem; }",
+    "#apca-details-panel #apca-status { font-weight: 700; font-size: 0.8rem; padding: 0.15rem 0.5rem; border-radius: 0.375rem; }",
+    "#apca-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }",
+    "#apca-table thead tr { color: #6B7280; }",
+    "#apca-table .apca-th { text-align: center; font-weight: 600; padding: 0.15rem 0.25rem 0.25rem; }",
+    "#apca-table .apca-th-left { text-align: left; padding-left: 0; }",
+    "#apca-table .apca-td { text-align: center; padding: 0.3rem 0.25rem; }",
+    "#apca-table .apca-label { text-align: left; padding-left: 0; color: #6B7280; white-space: nowrap; }",
+    "#apca-table .apca-detected { font-weight: 700; }",
+    "#apca-table .apca-needed { font-weight: 700; }",
+    "#apca-table .apca-rec { color: #9CA3AF; }",
+    "#apca-table .apca-row-border { border-top: 1px solid #F3F4F6; }",
   ].join(" ");
   styleSheet.innerText = styles;
   document.head.appendChild(styleSheet);
