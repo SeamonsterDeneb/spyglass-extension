@@ -1073,10 +1073,9 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
     "#contrast-checker-container #apca-details-panel #apca-status { font-weight: 700; font-size: 0.8rem; padding: 0.15rem 0.5rem; border-radius: 0.375rem; color: white; }",
     "#contrast-checker-container #apca-table { width: 100%; border-collapse: collapse !important; font-size: 0.8rem; }",
     "#contrast-checker-container #apca-table thead tr { color: #6B7280; }",
-    "#contrast-checker-container #apca-table th, #contrast-checker-container #apca-table td { border: 1px solid #D1D5DB !important; vertical-align: middle !important; line-height: 1.4 !important; background-color: #ffffff !important; }",
-    "#contrast-checker-container #apca-table #apca-rec-size { border-left: 1px solid #D1D5DB !important; border-right: 1px solid #D1D5DB !important; border-top: 1px solid #D1D5DB !important; border-bottom-color: transparent !important; }",
-    "#contrast-checker-container #apca-table #apca-rec-weight { border-left: 1px solid #D1D5DB !important; border-right: 1px solid #D1D5DB !important; border-bottom: 1px solid #D1D5DB !important; border-top-color: transparent !important; }",
-    "#contrast-checker-container #apca-table thead th { border-bottom: 2px solid #D1D5DB !important; }",
+    "#contrast-checker-container #apca-table th, #contrast-checker-container #apca-table td { border: 1px solid #F3F4F6 !important; vertical-align: middle !important; line-height: 1.4 !important; background-color: #ffffff !important; }",
+    "#contrast-checker-container #apca-table #apca-rec-size, #contrast-checker-container #apca-table #apca-rec-weight { border-left: 1px solid #F3F4F6 !important; border-right: 1px solid #F3F4F6 !important; border-top-color: transparent !important; border-bottom-color: transparent !important; }",
+    "#contrast-checker-container #apca-table thead th { border-bottom: 2px solid #E5E7EB !important; }",
     "#contrast-checker-container #apca-table .apca-th { text-align: center !important; font-weight: 600; padding: 0.15rem 0.25rem 0.25rem !important; }",
     "#contrast-checker-container #apca-table .apca-th-left { text-align: left !important; padding-left: 0 !important; }",
     "#contrast-checker-container #apca-table .apca-td { text-align: center !important; padding: 0.3rem 0.25rem !important; }",
@@ -1491,6 +1490,20 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
   }
 
   function updateUI() {
+    // APCA Bronze lookup table — defined first so it's available throughout updateUI
+    const apcaThresholds = {
+      10: { 400: 100, 500: 100, 600:  90, 700:  80, 800:  80, 900:  80 },
+      12: { 300: 100, 400:  90, 500:  75, 600:  70, 700:  60, 800:  60, 900:  60 },
+      14: { 300:  90, 400:  75, 500:  70, 600:  60, 700:  55, 800:  55, 900:  55 },
+      16: { 200: 100, 300:  75, 400:  70, 500:  60, 600:  55, 700:  50, 800:  50, 900:  50 },
+      18: { 200:  90, 300:  70, 400:  65, 500:  55, 600:  50, 700:  45, 800:  45, 900:  45 },
+      24: { 200:  75, 300:  60, 400:  60, 500:  50, 600:  45, 700:  40, 800:  40, 900:  40 },
+      36: { 200:  60, 300:  50, 400:  50, 500:  45, 600:  40, 700:  35, 800:  35, 900:  35 },
+      48: { 200:  50, 300:  45, 400:  45, 500:  40, 600:  35, 700:  30, 800:  30, 900:  30 },
+      96: { 200:  40, 300:  38, 400:  38, 500:  35, 600:  30, 700:  25, 800:  25, 900:  25 },
+    };
+    const apcaWeightKeys = [200, 300, 400, 500, 600, 700, 800, 900];
+
     const fgHexWithAlpha = fgColorInput.value.trim().toUpperCase();
     const bgHexWithAlpha = bgColorInput.value.trim().toUpperCase();
     const fgRgba = hexToRgba(fgHexWithAlpha);
@@ -1595,31 +1608,26 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
       previewSummary.style.backgroundColor = effectiveBgHex;
     }
 
+    // For the pill, determine the correct pass threshold for whichever mode is active.
+    let pillPassThreshold = tweakTargetContrast;
+    if (usingAPCA) {
+      const _sizeInPx  = parseFloat(currentFontSize);
+      const _weightNum = parseInt(currentFontWeight, 10);
+      const _sortedSizes = Object.keys(apcaThresholds).map(Number).sort((a, b) => a - b);
+      const _wk = (() => { let b = apcaWeightKeys[0]; for (const k of apcaWeightKeys) { if (k <= _weightNum) b = k; else break; } return b; })();
+      let _bucket = _sortedSizes[0];
+      for (const s of _sortedSizes) { if (_sizeInPx >= s) _bucket = s; else break; }
+      const _fromTable = (apcaThresholds[_bucket] && apcaThresholds[_bucket][_wk]) || 100;
+      pillPassThreshold = Math.max(75, _fromTable);
+    }
+
     updateMiniRatioPill(
       minContrast,
       maxContrast,
       isRange,
-      tweakTargetContrast,
+      pillPassThreshold,
       usingAPCA,
     );
-
-    // Define APCA thresholds
-    // Full APCA Bronze lookup table: size (px) -> weight -> minimum Lc required
-    // Source: APCA Readability Criterion, Bronze conformance level
-    // A value of 0 means that weight/size combo is not usable for body text per APCA.
-    const apcaThresholds = {
-      10: { 400: 100, 500: 100, 600:  90, 700:  80, 800:  80, 900:  80 },
-      12: { 300: 100, 400:  90, 500:  75, 600:  70, 700:  60, 800:  60, 900:  60 },
-      14: { 300:  90, 400:  75, 500:  70, 600:  60, 700:  55, 800:  55, 900:  55 },
-      16: { 200: 100, 300:  75, 400:  70, 500:  60, 600:  55, 700:  50, 800:  50, 900:  50 },
-      18: { 200:  90, 300:  70, 400:  65, 500:  55, 600:  50, 700:  45, 800:  45, 900:  45 },
-      24: { 200:  75, 300:  60, 400:  60, 500:  50, 600:  45, 700:  40, 800:  40, 900:  40 },
-      36: { 200:  60, 300:  50, 400:  50, 500:  45, 600:  40, 700:  35, 800:  35, 900:  35 },
-      48: { 200:  50, 300:  45, 400:  45, 500:  40, 600:  35, 700:  30, 800:  30, 900:  30 },
-      96: { 200:  40, 300:  38, 400:  38, 500:  35, 600:  30, 700:  25, 800:  25, 900:  25 },
-    };
-    // Canonical weight values in the table (for finding nearest lookup weight)
-    const apcaWeightKeys = [200, 300, 400, 500, 600, 700, 800, 900];
 
     let calculatedRatioColor;
 
@@ -1719,7 +1727,7 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
             break;
           }
         }
-        neededSizeText = neededSize != null ? `${neededSize}px` : "N/A";
+        neededSizeText = neededSize != null ? `≥ ${neededSize}px` : "N/A";
       }
 
       // --- Needed Weight row: keep size fixed, find what weight is needed ---
@@ -1741,7 +1749,7 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
           }
         }
         if (lightestPassingWeight != null) {
-          neededWeightText = `${lightestPassingWeight}`;
+          neededWeightText = `≥ ${lightestPassingWeight}`;
         } else {
           neededWeightText = "N/A";
         }
