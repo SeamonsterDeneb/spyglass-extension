@@ -791,7 +791,7 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
   }
 
   // --- CONSTANTS & STATE ---
-  const version = "1.6";
+  const version = "1.7";
 
   let isElementPicking = false;
   let isPickingForeground = true;
