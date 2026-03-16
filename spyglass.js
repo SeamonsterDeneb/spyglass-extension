@@ -1291,9 +1291,15 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
       const d = max - min;
       s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
       switch (max) {
-        case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
-        case g: h = ((b - r) / d + 2) / 6; break;
-        case b: h = ((r - g) / d + 4) / 6; break;
+        case r:
+          h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+          break;
+        case g:
+          h = ((b - r) / d + 2) / 6;
+          break;
+        case b:
+          h = ((r - g) / d + 4) / 6;
+          break;
       }
     }
     return { h, s, l, a: rgba.a !== undefined ? rgba.a : 1 };
@@ -1308,16 +1314,16 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
       const hue2rgb = (p, q, t) => {
         if (t < 0) t += 1;
         if (t > 1) t -= 1;
-        if (t < 1/6) return p + (q - p) * 6 * t;
-        if (t < 1/2) return q;
-        if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+        if (t < 1 / 6) return p + (q - p) * 6 * t;
+        if (t < 1 / 2) return q;
+        if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
         return p;
       };
       const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
       const p = 2 * l - q;
-      r = hue2rgb(p, q, h + 1/3);
+      r = hue2rgb(p, q, h + 1 / 3);
       g = hue2rgb(p, q, h);
-      b = hue2rgb(p, q, h - 1/3);
+      b = hue2rgb(p, q, h - 1 / 3);
     }
     return {
       r: Math.round(r * 255),
@@ -1492,15 +1498,69 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
   function updateUI() {
     // APCA Bronze lookup table — defined first so it's available throughout updateUI
     const apcaThresholds = {
-      10: { 400: 100, 500: 100, 600:  90, 700:  80, 800:  80, 900:  80 },
-      12: { 300: 100, 400:  90, 500:  75, 600:  70, 700:  60, 800:  60, 900:  60 },
-      14: { 300:  90, 400:  75, 500:  70, 600:  60, 700:  55, 800:  55, 900:  55 },
-      16: { 200: 100, 300:  75, 400:  70, 500:  60, 600:  55, 700:  50, 800:  50, 900:  50 },
-      18: { 200:  90, 300:  70, 400:  65, 500:  55, 600:  50, 700:  45, 800:  45, 900:  45 },
-      24: { 200:  75, 300:  60, 400:  60, 500:  50, 600:  45, 700:  40, 800:  40, 900:  40 },
-      36: { 200:  60, 300:  50, 400:  50, 500:  45, 600:  40, 700:  35, 800:  35, 900:  35 },
-      48: { 200:  50, 300:  45, 400:  45, 500:  40, 600:  35, 700:  30, 800:  30, 900:  30 },
-      96: { 200:  40, 300:  38, 400:  38, 500:  35, 600:  30, 700:  25, 800:  25, 900:  25 },
+      10: { 400: 100, 500: 100, 600: 90, 700: 80, 800: 80, 900: 80 },
+      12: { 300: 100, 400: 90, 500: 75, 600: 70, 700: 60, 800: 60, 900: 60 },
+      14: { 300: 90, 400: 75, 500: 70, 600: 60, 700: 55, 800: 55, 900: 55 },
+      16: {
+        200: 100,
+        300: 75,
+        400: 70,
+        500: 60,
+        600: 55,
+        700: 50,
+        800: 50,
+        900: 50,
+      },
+      18: {
+        200: 90,
+        300: 70,
+        400: 65,
+        500: 55,
+        600: 50,
+        700: 45,
+        800: 45,
+        900: 45,
+      },
+      24: {
+        200: 75,
+        300: 60,
+        400: 60,
+        500: 50,
+        600: 45,
+        700: 40,
+        800: 40,
+        900: 40,
+      },
+      36: {
+        200: 60,
+        300: 50,
+        400: 50,
+        500: 45,
+        600: 40,
+        700: 35,
+        800: 35,
+        900: 35,
+      },
+      48: {
+        200: 50,
+        300: 45,
+        400: 45,
+        500: 40,
+        600: 35,
+        700: 30,
+        800: 30,
+        900: 30,
+      },
+      96: {
+        200: 40,
+        300: 38,
+        400: 38,
+        500: 35,
+        600: 30,
+        700: 25,
+        800: 25,
+        900: 25,
+      },
     };
     const apcaWeightKeys = [200, 300, 400, 500, 600, 700, 800, 900];
 
@@ -1611,13 +1671,26 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
     // For the pill, determine the correct pass threshold for whichever mode is active.
     let pillPassThreshold = tweakTargetContrast;
     if (usingAPCA) {
-      const _sizeInPx  = parseFloat(currentFontSize);
+      const _sizeInPx = parseFloat(currentFontSize);
       const _weightNum = parseInt(currentFontWeight, 10);
-      const _sortedSizes = Object.keys(apcaThresholds).map(Number).sort((a, b) => a - b);
-      const _wk = (() => { let b = apcaWeightKeys[0]; for (const k of apcaWeightKeys) { if (k <= _weightNum) b = k; else break; } return b; })();
+      const _sortedSizes = Object.keys(apcaThresholds)
+        .map(Number)
+        .sort((a, b) => a - b);
+      const _wk = (() => {
+        let b = apcaWeightKeys[0];
+        for (const k of apcaWeightKeys) {
+          if (k <= _weightNum) b = k;
+          else break;
+        }
+        return b;
+      })();
       let _bucket = _sortedSizes[0];
-      for (const s of _sortedSizes) { if (_sizeInPx >= s) _bucket = s; else break; }
-      const _fromTable = (apcaThresholds[_bucket] && apcaThresholds[_bucket][_wk]) || 100;
+      for (const s of _sortedSizes) {
+        if (_sizeInPx >= s) _bucket = s;
+        else break;
+      }
+      const _fromTable =
+        (apcaThresholds[_bucket] && apcaThresholds[_bucket][_wk]) || 100;
       pillPassThreshold = Math.max(75, _fromTable);
     }
 
@@ -1634,10 +1707,7 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
     // setSwatchXIcon is shared between APCA and WCAG suggestion logic
     function setSwatchXIcon(swatchEl) {
       swatchEl.textContent = "";
-      const svg = document.createElementNS(
-        "http://www.w3.org/2000/svg",
-        "svg",
-      );
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
       svg.setAttribute("width", "16");
       svg.setAttribute("height", "16");
       svg.setAttribute("viewBox", "0 0 24 24");
@@ -1700,7 +1770,7 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
           else break;
         }
         const row = apcaThresholds[bucket];
-        return (row && row[weightKey] != null) ? row[weightKey] : null;
+        return row && row[weightKey] != null ? row[weightKey] : null;
       }
 
       const lookupWeight = nearestWeightKey(weightNum);
@@ -1757,35 +1827,47 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
 
       // Populate table cells
       document.getElementById("apca-font-size").textContent = currentFontSize;
-      document.getElementById("apca-font-weight").textContent = currentFontWeight;
-      document.getElementById("apca-min-lc").textContent = `Lc ${minLcRequired}`;
-      document.getElementById("apca-min-lc-weight").textContent = `Lc ${minLcSameWeight}`;
+      document.getElementById("apca-font-weight").textContent =
+        currentFontWeight;
+      document.getElementById("apca-min-lc").textContent =
+        `Lc ${minLcRequired}`;
+      document.getElementById("apca-min-lc-weight").textContent =
+        `Lc ${minLcSameWeight}`;
       document.getElementById("apca-needed-size").textContent = neededSizeText;
-      document.getElementById("apca-needed-weight").textContent = neededWeightText;
+      document.getElementById("apca-needed-weight").textContent =
+        neededWeightText;
 
       // Apply state classes to Needed cells instead of inline styles
       function setNeededState(el, text) {
-        el.classList.remove("apca-state-pass", "apca-state-suggest", "apca-state-na");
+        el.classList.remove(
+          "apca-state-pass",
+          "apca-state-suggest",
+          "apca-state-na",
+        );
         if (text === "✓ passes") el.classList.add("apca-state-pass");
-        else if (text === "N/A")  el.classList.add("apca-state-na");
-        else                      el.classList.add("apca-state-suggest");
+        else if (text === "N/A") el.classList.add("apca-state-na");
+        else el.classList.add("apca-state-suggest");
       }
-      const neededSizeEl   = document.getElementById("apca-needed-size");
+      const neededSizeEl = document.getElementById("apca-needed-size");
       const neededWeightEl = document.getElementById("apca-needed-weight");
       setNeededState(neededSizeEl, neededSizeText);
       setNeededState(neededWeightEl, neededWeightText);
 
       // --- Balanced recommendation ---
       const apcaPass = lcNow >= minLcRequired;
-      const recSizeEl   = document.getElementById("apca-rec-size");
+      const recSizeEl = document.getElementById("apca-rec-size");
       const recWeightEl = document.getElementById("apca-rec-weight");
 
       function setRecState(sizeEl, weightEl, sizeText, weightText, stateClass) {
-        [sizeEl, weightEl].forEach(el => {
-          el.classList.remove("apca-state-pass", "apca-state-na", "apca-rec-active");
+        [sizeEl, weightEl].forEach((el) => {
+          el.classList.remove(
+            "apca-state-pass",
+            "apca-state-na",
+            "apca-rec-active",
+          );
           if (stateClass) el.classList.add(stateClass);
         });
-        sizeEl.textContent   = sizeText;
+        sizeEl.textContent = sizeText;
         weightEl.textContent = weightText;
       }
 
@@ -1801,14 +1883,25 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
             const threshold = row[wk];
             if (threshold == null || lcNow < threshold) continue;
             if (sizePx < sizeInPx || wk < weightNum) continue;
-            const sizeDelta   = (sizePx - sizeInPx) / sizeInPx;
-            const weightDelta = (wk - weightNum)     / weightNum;
-            const score = Math.sqrt(sizeDelta * sizeDelta + weightDelta * weightDelta);
-            if (score < bestScore) { bestScore = score; bestRec = { sizePx, wk }; }
+            const sizeDelta = (sizePx - sizeInPx) / sizeInPx;
+            const weightDelta = (wk - weightNum) / weightNum;
+            const score = Math.sqrt(
+              sizeDelta * sizeDelta + weightDelta * weightDelta,
+            );
+            if (score < bestScore) {
+              bestScore = score;
+              bestRec = { sizePx, wk };
+            }
           }
         }
         if (bestRec) {
-          setRecState(recSizeEl, recWeightEl, `${bestRec.sizePx}px`, `${bestRec.wk}`, "apca-rec-active");
+          setRecState(
+            recSizeEl,
+            recWeightEl,
+            `${bestRec.sizePx}px`,
+            `${bestRec.wk}`,
+            "apca-rec-active",
+          );
         } else {
           setRecState(recSizeEl, recWeightEl, "N/A", "N/A", "apca-state-na");
         }
@@ -1830,8 +1923,18 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
         fgSuggestionLabel.textContent = "Lc 75";
         bgSuggestionLabel.textContent = "Lc 75";
 
-        const fgSuggestionHex = adjustLuminanceAPCA(fgRgba, bgRgba, apcaSuggestionTarget, true);
-        const bgSuggestionHex = adjustLuminanceAPCA(bgRgba, fgRgba, apcaSuggestionTarget, false);
+        const fgSuggestionHex = adjustLuminanceAPCA(
+          fgRgba,
+          bgRgba,
+          apcaSuggestionTarget,
+          true,
+        );
+        const bgSuggestionHex = adjustLuminanceAPCA(
+          bgRgba,
+          fgRgba,
+          apcaSuggestionTarget,
+          false,
+        );
 
         // Verify fg suggestion — same compositing as inside adjustLuminanceAPCA:
         // suggested FG over solid BG (other color composited over white)
@@ -2563,7 +2666,12 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
     return rgbToHex(startRgb.r, startRgb.g, startRgb.b);
   }
 
-  function adjustLuminanceAPCA(colorRgba, otherColorRgba, targetLc, isAdjustingForeground) {
+  function adjustLuminanceAPCA(
+    colorRgba,
+    otherColorRgba,
+    targetLc,
+    isAdjustingForeground,
+  ) {
     if (!colorRgba || !otherColorRgba) return "#FF0000";
 
     const baseWhite = { r: 255, g: 255, b: 255, a: 1 };
@@ -2633,7 +2741,9 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
 
     let lo = hsl.l;
     let hi = targetL;
-    if (lo > hi) { [lo, hi] = [hi, lo]; }
+    if (lo > hi) {
+      [lo, hi] = [hi, lo];
+    }
 
     let bestL = goLighter ? 1 : 0;
     let found = false;
@@ -2660,7 +2770,9 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
       const altTargetL = goLighter ? 0 : 1;
       let lo2 = hsl.l;
       let hi2 = altTargetL;
-      if (lo2 > hi2) { [lo2, hi2] = [hi2, lo2]; }
+      if (lo2 > hi2) {
+        [lo2, hi2] = [hi2, lo2];
+      }
 
       for (let i = 0; i < 30; i++) {
         const midL = (lo2 + hi2) / 2;
