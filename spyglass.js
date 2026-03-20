@@ -364,9 +364,17 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
     <div class="sg-panel" id="${S}-panel" style="flex:1;min-width:0;display:flex;flex-direction:column;border-left:${isWcag ? "none" : "2px solid #E5E7EB"};">
 
       <!-- Panel header band -->
-      <div style="padding:0.35rem 0.75rem;background:${headerBg};border-bottom:1px solid ${headerBorder};display:flex;align-items:center;gap:0.5rem;flex-shrink:0;">
+      <div style="padding:0.35rem 0.75rem;background:${headerBg};border-bottom:1px solid ${headerBorder};display:flex;align-items:center;gap:0.5rem;flex-shrink:0;flex-wrap:wrap;">
         <span style="font-weight:800;font-size:0.8rem;color:${headerColor};letter-spacing:0.08em;text-transform:uppercase;">${headerLabel}</span>
         <span style="font-size:0.7rem;color:${headerColor};opacity:0.7;">analysis</span>
+        ${!isWcag ? `<select id="${S}-element-type-select" style="margin-left:auto;font-size:0.7rem;font-weight:600;padding:0.15rem 0.3rem;border-radius:0.25rem;border:1px solid ${headerBorder};background:white;color:#374151;cursor:pointer;">
+          <option value="body">Body Text</option>
+          <option value="content">Content Text</option>
+          <option value="large">Large / Headlines</option>
+          <option value="spot">Spot / Placeholder</option>
+          <option value="ui">UI Component</option>
+          <option value="nontext">Non-text Element</option>
+        </select>` : ""}
       </div>
 
       <div id="${S}-panel-body" style="padding:0.75rem;overflow-y:auto;flex-grow:1;">
@@ -503,7 +511,7 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
                       <tr>
                         <th class="apca-th apca-th-left">Property</th>
                         <th class="apca-th">Detected</th>
-                        <th class="apca-th">Needed</th>
+                        <th class="apca-th">Proposed</th>
                         <th class="apca-th">Recommendation</th>
                       </tr>
                     </thead>
@@ -855,6 +863,29 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
   };
   const apcaWeightKeys = [200,300,400,500,600,700,800,900];
 
+  // ─── ELEMENT TYPE ADVISORY ────────────────────────────────
+  // Purely informational — does not affect pass/fail calculations.
+  // These are APCA's general guidance levels for each use case.
+  const elementTypeAdvisory = {
+    body:    { lc: 75, label: "Body Text",          note: "Recommended Lc 75+ for fluent reading" },
+    content: { lc: 60, label: "Content Text",       note: "Recommended Lc 60+ for readable non-body text" },
+    large:   { lc: 45, label: "Large / Headlines",  note: "Recommended Lc 45+ for large or bold text" },
+    spot:    { lc: 30, label: "Spot / Placeholder", note: "Recommended Lc 30+ for spot-readable text" },
+    ui:      { lc: 30, label: "UI Component",       note: "Recommended Lc 30+ for icons and UI elements" },
+    nontext: { lc: 15, label: "Non-text Element",   note: "Recommended Lc 15+ for dividers and borders" },
+  };
+
+  function autoDetectElementType(sizePx, weightNum) {
+    // Large or heavy text → headline
+    if (sizePx >= 36 || (sizePx >= 24 && weightNum >= 700)) return "large";
+    // Meets APCA body text minimums: 24px/300, 18px/400, 16px/500, 14px/700
+    if ((sizePx >= 24 && weightNum >= 300) || (sizePx >= 18 && weightNum >= 400) ||
+        (sizePx >= 16 && weightNum >= 500) || (sizePx >= 14 && weightNum >= 700)) return "body";
+    // Meets content text minimums: 24px/400, 21px/500, 18px/600, 16px/700
+    if ((sizePx >= 24 && weightNum >= 400) || (sizePx >= 21 && weightNum >= 500) ||
+        (sizePx >= 18 && weightNum >= 600) || (sizePx >= 16 && weightNum >= 700)) return "content";
+    return "spot";
+  }
   // ─── DOM REFS HELPER ──────────────────────────────────────
   // Returns an object of all namespaced DOM references for a given side.
   function getRefs(side) {
@@ -1201,8 +1232,7 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
       for (const k of apcaWeightKeys) { if (k<=weightNum) wk=k; else break; }
       let bucket = sortedSizes[0];
       for (const s of sortedSizes) { if (sizeInPx>=s) bucket=s; else break; }
-      const fromTable = (apcaThresholds[bucket]&&apcaThresholds[bucket][wk]) || 100;
-      pillPassThreshold = Math.max(75, fromTable);
+      pillPassThreshold = (apcaThresholds[bucket]&&apcaThresholds[bucket][wk]) || 100;
     }
 
     updateMiniRatioPill(R.miniRatioPill, minContrast, maxContrast, isRange, pillPassThreshold, isAPCA);
@@ -1225,55 +1255,103 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
         return best;
       }
       function minLcFor(sizePx, weightKey) {
-        let bucket=sortedSizes[0];
-        for (const s of sortedSizes) { if(sizePx>=s) bucket=s; else break; }
-        const row=apcaThresholds[bucket];
-        return row&&row[weightKey]!=null ? row[weightKey] : null;
+        // Find the two size rows that bracket sizePx
+        let lowerSize = sortedSizes[0], upperSize = sortedSizes[sortedSizes.length - 1];
+        for (let i = 0; i < sortedSizes.length; i++) {
+          if (sortedSizes[i] <= sizePx) lowerSize = sortedSizes[i];
+          if (sortedSizes[i] >= sizePx && (upperSize === sortedSizes[sortedSizes.length-1] || sortedSizes[i] < upperSize)) {
+            upperSize = sortedSizes[i];
+          }
+        }
+        // Find the upper size correctly
+        upperSize = sortedSizes[sortedSizes.length - 1];
+        for (const s of sortedSizes) { if (s >= sizePx) { upperSize = s; break; } }
+
+        const lowerRow = apcaThresholds[lowerSize];
+        const upperRow = apcaThresholds[upperSize];
+
+        // Find the two weight columns that bracket weightKey
+        const allWeights = apcaWeightKeys;
+        let lowerW = allWeights[0], upperW = allWeights[allWeights.length - 1];
+        for (const w of allWeights) { if (w <= weightKey) lowerW = w; }
+        for (const w of allWeights) { if (w >= weightKey) { upperW = w; break; } }
+
+        // Helper: interpolate along the weight axis for a given size row,
+        // skipping missing entries by finding the nearest valid ones
+        function interpWeight(row, wLo, wHi, wTarget) {
+          if (!row) return null;
+          // Walk outward to find valid weight entries if exact ones are missing
+          let lo = wLo, hi = wHi;
+          while (lo >= allWeights[0] && row[lo] == null) lo -= 100;
+          while (hi <= allWeights[allWeights.length-1] && row[hi] == null) hi += 100;
+          const vLo = row[lo], vHi = row[hi];
+          if (vLo == null && vHi == null) return null;
+          if (vLo == null) return vHi;
+          if (vHi == null) return vLo;
+          if (lo === hi) return vLo;
+          // Linear interpolation along weight axis
+          const t = (wTarget - lo) / (hi - lo);
+          return vLo + t * (vHi - vLo);
+        }
+
+        const lcAtLowerSize = interpWeight(lowerRow, lowerW, upperW, weightKey);
+        const lcAtUpperSize = interpWeight(upperRow, lowerW, upperW, weightKey);
+
+        if (lcAtLowerSize == null && lcAtUpperSize == null) return null;
+        if (lcAtLowerSize == null) return lcAtUpperSize;
+        if (lcAtUpperSize == null) return lcAtLowerSize;
+        if (lowerSize === upperSize) return lcAtLowerSize;
+
+        // Linear interpolation along the size axis
+        const t = (sizePx - lowerSize) / (upperSize - lowerSize);
+        return lcAtLowerSize + t * (lcAtUpperSize - lcAtLowerSize);
       }
 
       const lookupWeight = nearestWeightKey(weightNum);
-      const minLcFromTable = minLcFor(sizeInPx, lookupWeight) ?? 100;
-      const minLcRequired = Math.max(75, minLcFromTable);
+      const tableThreshold = minLcFor(sizeInPx, lookupWeight) ?? 100;
+      const minLcRequired = tableThreshold;
 
-      let neededSizeText;
+      let neededSizeText, neededWeightText;
+
       if (lcNow >= minLcRequired) {
         neededSizeText = "✓ passes";
       } else {
-        // Find the smallest size where the table threshold at the detected weight
-        // equals or drops to exactly what lcNow can satisfy at our standard floor.
-        // Rule: the threshold at that size+weight must be <= lcNow, AND the threshold
-        // must be >= the minLcRequired for that size (i.e. our floor is actually met).
+        // Walk from the smallest table size upward in 0.5px steps,
+        // using interpolation to find the smallest size where lcNow
+        // meets the interpolated threshold at the detected weight.
+        const minTableSize = sortedSizes[0];
+        const maxTableSize = sortedSizes[sortedSizes.length - 1];
         let neededSize = null;
-        for (const size of sortedSizes) {
-          const row = apcaThresholds[size];
-          if (!row || row[lookupWeight] == null) continue;
-          const threshold = row[lookupWeight];
-          // Recompute minLcRequired at THIS size to see if our floor is met here
-          const minLcAtThisSize = Math.max(75, threshold);
-          if (lcNow >= minLcAtThisSize) {
-            neededSize = size;
+        for (let sz = minTableSize; sz <= maxTableSize; sz += 0.5) {
+          const threshold = minLcFor(sz, lookupWeight);
+          if (threshold != null && lcNow >= threshold) {
+            neededSize = sz;
             break;
           }
         }
-        neededSizeText = neededSize != null ? `≥ ${neededSize}px` : "N/A";
+        // Round up to nearest 0.5 and display cleanly
+        const neededSizeLabel = neededSize != null
+          ? `≥ ${neededSize % 1 === 0 ? neededSize : neededSize.toFixed(1)}px`
+          : "N/A";
+        neededSizeText = neededSizeLabel;
       }
 
-      let neededWeightText;
       if (lcNow >= minLcRequired) {
         neededWeightText = "✓ passes";
       } else {
-        // Find the lightest weight where lcNow meets our floor at the detected size.
+        // Walk standard weight increments (100-unit steps) using interpolated
+        // size thresholds so the result is consistent with the size interpolation.
         let lightestPassingWeight = null;
         for (const wk of apcaWeightKeys) {
           const threshold = minLcFor(sizeInPx, wk);
-          if (threshold == null) continue;
-          const minLcAtThisWeight = Math.max(75, threshold);
-          if (lcNow >= minLcAtThisWeight) {
+          if (threshold != null && lcNow >= threshold) {
             lightestPassingWeight = wk;
             break;
           }
         }
-        neededWeightText = lightestPassingWeight != null ? `≥ ${lightestPassingWeight}` : "N/A";
+        neededWeightText = lightestPassingWeight != null
+          ? `≥ ${lightestPassingWeight}`
+          : "N/A";
       }
 
       R.apcaFontSize.textContent    = currentFontSize;
@@ -1293,34 +1371,100 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
       const apcaPass = lcNow >= minLcRequired;
 
       if (apcaPass) {
-        [R.apcaRecSize,R.apcaRecWeight].forEach(el=>{
+        // Element passes the APCA table — show ✓ in Recommendation column.
+        // But if it doesn't meet the advisory Lc level, show a best-practice
+        // suggestion in the Proposed column instead of a plain ✓.
+        const etSelect = document.getElementById(`${side}-element-type-select`);
+        const currentTypeForRec = etSelect ? etSelect.value : "body";
+        const advisoryForRec = elementTypeAdvisory[currentTypeForRec];
+        const meetsAdvisoryLc = lcNow >= advisoryForRec.lc;
+
+        // Recommendation column always shows ✓ when table passes
+        [R.apcaRecSize, R.apcaRecWeight].forEach(el => {
           el.classList.remove("apca-state-na","apca-rec-active");
           el.classList.add("apca-state-pass");
-          el.textContent="✓";
+          el.textContent = "✓";
         });
-      } else {
-        let bestRec=null, bestScore=Infinity;
-        for (const sizePx of sortedSizes) {
-          const row=apcaThresholds[sizePx]; if(!row)continue;
+
+        if (meetsAdvisoryLc) {
+          // Fully passes both table and advisory — plain ✓ in Proposed too
+          [R.apcaNeededSize, R.apcaNeededWeight].forEach(el => {
+            el.classList.remove("apca-state-suggest","apca-state-na");
+            el.classList.add("apca-state-pass");
+            el.textContent = "✓";
+          });
+        } else {
+          // Passes table but not advisory — show best-practice suggestion
+          // in Proposed column with amber styling and ↑ prefix
+          const minTableSize = sortedSizes[0];
+          const maxTableSize = sortedSizes[sortedSizes.length - 1];
+          let advisorySize = null;
+          for (let sz = sizeInPx; sz <= maxTableSize; sz += 0.5) {
+            const threshold = minLcFor(sz, lookupWeight);
+            if (threshold != null && threshold <= advisoryForRec.lc) {
+              advisorySize = sz;
+              break;
+            }
+          }
+          // Find lightest weight that meets advisory at detected size
+          let advisoryWeight = null;
           for (const wk of apcaWeightKeys) {
-            const threshold=row[wk];
-            if (threshold==null||lcNow<threshold)continue;
-            if (sizePx<sizeInPx||wk<weightNum)continue;
-            const sd=(sizePx-sizeInPx)/sizeInPx, wd=(wk-weightNum)/weightNum;
-            const score=Math.sqrt(sd*sd+wd*wd);
-            if (score<bestScore) { bestScore=score; bestRec={sizePx,wk}; }
+            if (wk < weightNum) continue;
+            const threshold = minLcFor(sizeInPx, wk);
+            if (threshold != null && threshold <= advisoryForRec.lc) {
+              advisoryWeight = wk;
+              break;
+            }
+          }
+
+          const szLabel = advisorySize != null
+            ? (advisorySize % 1 === 0 ? `↑ ${advisorySize}px` : `↑ ${advisorySize.toFixed(1)}px`)
+            : "✓";
+          const wkLabel = advisoryWeight != null ? `↑ ${advisoryWeight}` : "✓";
+
+          R.apcaNeededSize.classList.remove("apca-state-pass","apca-state-na");
+          R.apcaNeededSize.classList.add("apca-state-suggest");
+          R.apcaNeededSize.textContent = szLabel;
+          R.apcaNeededSize.title = `Passes APCA table, but ${advisoryForRec.label} advisory recommends Lc ${advisoryForRec.lc}+`;
+
+          R.apcaNeededWeight.classList.remove("apca-state-pass","apca-state-na");
+          R.apcaNeededWeight.classList.add("apca-state-suggest");
+          R.apcaNeededWeight.textContent = wkLabel;
+          R.apcaNeededWeight.title = R.apcaNeededSize.title;
+        }
+      } else {
+        let bestRec = null, bestScore = Infinity;
+        const minTableSize = sortedSizes[0];
+        const maxTableSize = sortedSizes[sortedSizes.length - 1];
+        for (let sz = minTableSize; sz <= maxTableSize; sz += 0.5) {
+          if (sz < sizeInPx) continue;
+          for (const wk of apcaWeightKeys) {
+            if (wk < weightNum) continue;
+            const threshold = minLcFor(sz, wk);
+            if (threshold == null || lcNow < threshold) continue;
+            const sd = (sz - sizeInPx) / sizeInPx;
+            const wd = (wk - weightNum) / Math.max(weightNum, 100);
+            const score = Math.sqrt(sd * sd + wd * wd);
+            if (score < bestScore) { bestScore = score; bestRec = { sz, wk }; }
           }
         }
         if (bestRec) {
           [R.apcaRecSize,R.apcaRecWeight].forEach(el=>{
-            el.classList.remove("apca-state-pass","apca-state-na"); el.classList.add("apca-rec-active");
+            el.classList.remove("apca-state-pass","apca-state-na");
+            el.classList.add("apca-rec-active");
           });
-          R.apcaRecSize.textContent=`${bestRec.sizePx}px`; R.apcaRecWeight.textContent=`${bestRec.wk}`;
+          const szLabel = bestRec.sz % 1 === 0
+            ? `${bestRec.sz}px`
+            : `${bestRec.sz.toFixed(1)}px`;
+          R.apcaRecSize.textContent = szLabel;
+          R.apcaRecWeight.textContent = `${bestRec.wk}`;
         } else {
           [R.apcaRecSize,R.apcaRecWeight].forEach(el=>{
-            el.classList.remove("apca-state-pass","apca-rec-active"); el.classList.add("apca-state-na");
+            el.classList.remove("apca-state-pass","apca-rec-active");
+            el.classList.add("apca-state-na");
           });
-          R.apcaRecSize.textContent="N/A"; R.apcaRecWeight.textContent="N/A";
+          R.apcaRecSize.textContent = "N/A";
+          R.apcaRecWeight.textContent = "N/A";
         }
       }
 
@@ -1329,6 +1473,26 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
       R.apcaStatus.classList.add(apcaPass?"apca-pass":"apca-fail");
       calculatedRatioColor = apcaPass ? "#059669" : "#dc2626";
 
+      // ── Advisory note ─────────────────────────────────────
+      // Show or update the informational note below the table.
+      const etSelect = document.getElementById(`${side}-element-type-select`);
+      const currentType = etSelect ? etSelect.value : "body";
+      const advisory = elementTypeAdvisory[currentType];
+      let advisoryEl = document.getElementById(`${side}-apca-advisory`);
+      if (!advisoryEl) {
+        advisoryEl = document.createElement("div");
+        advisoryEl.id = `${side}-apca-advisory`;
+        advisoryEl.style.cssText = "margin-top:0.5rem;padding:0.35rem 0.5rem;border-radius:0.25rem;font-size:0.72rem;line-height:1.4;border-left:3px solid #DDD6FE;background:#F5F3FF;color:#5B21B6;";
+        const tableEl = document.getElementById(`${side}-apca-table`);
+        if (tableEl && tableEl.parentNode) tableEl.parentNode.appendChild(advisoryEl);
+      }
+      const meetsAdvisory = lcNow >= advisory.lc;
+      advisoryEl.style.borderLeftColor = meetsAdvisory ? "#6EE7B7" : "#FCA5A5";
+      advisoryEl.style.backgroundColor = meetsAdvisory ? "#F0FDF4" : "#FFF7F7";
+      advisoryEl.style.color = meetsAdvisory ? "#065F46" : "#991B1B";
+      advisoryEl.textContent = meetsAdvisory
+        ? `✓ Meets advisory for ${advisory.label}: Lc ${advisory.lc}+`
+        : `Advisory for ${advisory.label}: ${advisory.note} (currently Lc ${lcNow.toFixed(1)})`;
       // ── Color row ────────────────────────────────────────
       const colorDetectedEl = document.getElementById(`${side}-apca-color-detected`);
       const colorNeededEl   = document.getElementById(`${side}-apca-color-needed`);
@@ -1376,15 +1540,24 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
       colorDetectedEl.appendChild(detectedPill);
 
       if (apcaPass) {
-        // Already passing — no needed or rec color required
-        colorNeededEl.textContent = "✓";
-        colorNeededEl.className = "apca-td apca-state-pass";
-        colorRecEl.textContent = "✓";
-        colorRecEl.className = "apca-td apca-rec sg-rec-cell apca-state-pass";
+        if (meetsAdvisoryLc) {
+          // Fully passes table and advisory — plain ✓ on both
+          colorNeededEl.textContent = "✓";
+          colorNeededEl.className = "apca-td apca-state-pass";
+          colorRecEl.textContent = "✓";
+          colorRecEl.className = "apca-td apca-rec sg-rec-cell apca-state-pass";
+        } else {
+          // Passes table but not advisory — suggest a color that hits advisory Lc
+          colorNeededEl.textContent = "";
+          colorNeededEl.className = "apca-td apca-state-suggest";
+          const advisoryColorHex = adjustLuminanceAPCA(fgRgba, bgRgba, advisoryForRec.lc, true);
+          colorNeededEl.appendChild(makeHexPill(advisoryColorHex, advisoryColorHex));
+          colorNeededEl.title = `Passes APCA table, but ${advisoryForRec.label} advisory recommends Lc ${advisoryForRec.lc}+`;
+          colorRecEl.textContent = "✓";
+          colorRecEl.className = "apca-td apca-rec sg-rec-cell apca-state-pass";
+        }
       } else {
-        // Needed: adjust FG luminance to hit Lc 75 against the current BG
-        const neededColorHex = adjustLuminanceAPCA(fgRgba, bgRgba, 75, true);
-
+        const neededColorHex = adjustLuminanceAPCA(fgRgba, bgRgba, tableThreshold, true);
         colorNeededEl.textContent = "";
         colorNeededEl.className = "apca-td";
         colorNeededEl.appendChild(makeHexPill(neededColorHex, neededColorHex));
@@ -1400,16 +1573,21 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
         // Re-derive bestRec here so we can use it for the color rec
         let bestRecForColor = null;
         let bestScoreForColor = Infinity;
-        for (const sizePx of sortedSizes) {
-          const row = apcaThresholds[sizePx]; if (!row) continue;
+        const minTableSize = sortedSizes[0];
+        const maxTableSize = sortedSizes[sortedSizes.length - 1];
+        for (let sz = minTableSize; sz <= maxTableSize; sz += 0.5) {
+          if (sz < sizeInPx) continue;
           for (const wk of apcaWeightKeys) {
-            const threshold = row[wk];
+            if (wk < weightNum) continue;
+            const threshold = minLcFor(sz, wk);
             if (threshold == null || lcNow < threshold) continue;
-            if (sizePx < sizeInPx || wk < weightNum) continue;
-            const sd = (sizePx - sizeInPx) / sizeInPx;
-            const wd = (wk - weightNum) / weightNum;
+            const sd = (sz - sizeInPx) / sizeInPx;
+            const wd = (wk - weightNum) / Math.max(weightNum, 100);
             const score = Math.sqrt(sd * sd + wd * wd);
-            if (score < bestScoreForColor) { bestScoreForColor = score; bestRecForColor = { sizePx, wk }; }
+            if (score < bestScoreForColor) {
+              bestScoreForColor = score;
+              bestRecForColor = { sizePx: sz, wk };
+            }
           }
         }
 
@@ -1428,12 +1606,12 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
       }
 
       // APCA suggestions
-      const apcaSuggestionTarget = 75;
+      const apcaSuggestionTarget = tableThreshold;
       if (contrast < apcaSuggestionTarget) {
         R.fgSuggestionBox.style.display = "flex";
         R.bgSuggestionBox.style.display = "flex";
-        R.fgSuggestionLabel.textContent = "Lc 75";
-        R.bgSuggestionLabel.textContent = "Lc 75";
+        R.fgSuggestionLabel.textContent = `Lc ${tableThreshold}`;
+        R.bgSuggestionLabel.textContent = `Lc ${tableThreshold}`;
 
         const fgSugHex = adjustLuminanceAPCA(fgRgba, bgRgba, apcaSuggestionTarget, true);
         const sugFgRgba = hexToRgba(fgSugHex);
@@ -1737,8 +1915,18 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
     sharedBgHex = rgbaStringToHex(elementBgColor);
     currentElement = target;
 
+    // Auto-detect element type and update the APCA advisory dropdown
+    const detectedType = autoDetectElementType(fontSize, parseInt(fontWeight, 10));
+    const etSelect = document.getElementById("apca-element-type-select");
+    if (etSelect) {
+      etSelect.value = detectedType;
+      etSelect.style.borderColor = "#3B82F6";
+      etSelect.style.color = "#1D4ED8";
+      etSelect.title = "Auto-detected — click to override";
+    }
+
     // Run pixel analysis if enabled on the side that triggered the pick
-    if (isPixelAnalysisEnabled && pixelAnalyzer) {
+    if (isPixelAnalysisEnabled && pixelAnalyzer) {      
       await performPixelAnalysis(target);
     }
 
@@ -1923,6 +2111,18 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
         ? "#EA580C"
         : (isWcag ? "#166534" : "#4C1D95");
     });
+
+    // Element type advisory dropdown (APCA only)
+    if (side === "apca") {
+      document.getElementById("apca-element-type-select")
+        ?.addEventListener("change", (e) => {
+          // Clear auto-detect styling when user manually changes it
+          e.target.style.borderColor = "";
+          e.target.style.color = "";
+          e.target.title = "Element type — affects advisory note only";
+          renderAll();
+        });
+    }
 
     // Tabs
     document.getElementById(`${side}-tab-btn-preview`)
