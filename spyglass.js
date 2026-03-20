@@ -2,6 +2,7 @@
 // SPYGLASS CONTRAST CHECKER — chunk 1 of 3
 // Paste this first, then chunk 2 immediately after, then chunk 3.
 // ============================================================
+import { minSizeForLc, fontMatrixWeightKeys } from "./apca-lookup.js";
 import { APCAcontrast, sRGBtoY } from "apca-w3";
 (function () {
   if (document.getElementById("contrast-checker-container")) return;
@@ -364,10 +365,10 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
     <div class="sg-panel" id="${S}-panel" style="flex:1;min-width:0;display:flex;flex-direction:column;border-left:${isWcag ? "none" : "2px solid #E5E7EB"};">
 
       <!-- Panel header band -->
-      <div style="padding:0.35rem 0.75rem;background:${headerBg};border-bottom:1px solid ${headerBorder};display:flex;align-items:center;gap:0.5rem;flex-shrink:0;flex-wrap:wrap;">
-        <span style="font-weight:800;font-size:0.8rem;color:${headerColor};letter-spacing:0.08em;text-transform:uppercase;">${headerLabel}</span>
-        <span style="font-size:0.7rem;color:${headerColor};opacity:0.7;">analysis</span>
-        ${!isWcag ? `<select id="${S}-element-type-select" style="margin-left:auto;font-size:0.7rem;font-weight:600;padding:0.15rem 0.3rem;border-radius:0.25rem;border:1px solid ${headerBorder};background:white;color:#374151;cursor:pointer;">
+      <div style="padding:0.35rem 0.75rem;background:${headerBg};border-bottom:1px solid ${headerBorder};display:flex;align-items:center;gap:0.5rem;flex-shrink:0;min-width:0;overflow:hidden;">
+        <span style="font-weight:800;font-size:0.8rem;color:${headerColor};letter-spacing:0.08em;text-transform:uppercase;flex-shrink:0;">${headerLabel}</span>
+        <span style="font-size:0.7rem;color:${headerColor};opacity:0.7;flex-shrink:0;">analysis</span>
+        ${!isWcag ? `<select id="${S}-element-type-select" style="margin-left:auto;font-size:0.7rem;font-weight:600;padding:0.15rem 0.3rem;border-radius:0.25rem;border:1px solid ${headerBorder};background:white;color:#374151;cursor:pointer;min-width:0;max-width:100%;flex-shrink:1;">
           <option value="body">Body Text</option>
           <option value="content">Content Text</option>
           <option value="large">Large / Headlines</option>
@@ -1369,6 +1370,8 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
       setNeededState(R.apcaNeededWeight, neededWeightText);
 
       const apcaPass = lcNow >= minLcRequired;
+      let meetsAdvisoryLc = false;
+      let advisoryForRec = elementTypeAdvisory["body"];
 
       if (apcaPass) {
         // Element passes the APCA table — show ✓ in Recommendation column.
@@ -1376,8 +1379,8 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
         // suggestion in the Proposed column instead of a plain ✓.
         const etSelect = document.getElementById(`${side}-element-type-select`);
         const currentTypeForRec = etSelect ? etSelect.value : "body";
-        const advisoryForRec = elementTypeAdvisory[currentTypeForRec];
-        const meetsAdvisoryLc = lcNow >= advisoryForRec.lc;
+        advisoryForRec = elementTypeAdvisory[currentTypeForRec];
+        meetsAdvisoryLc = lcNow >= advisoryForRec.lc;
 
         // Recommendation column always shows ✓ when table passes
         [R.apcaRecSize, R.apcaRecWeight].forEach(el => {
@@ -1394,43 +1397,36 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
             el.textContent = "✓";
           });
         } else {
-          // Passes table but not advisory — show best-practice suggestion
-          // in Proposed column with amber styling and ↑ prefix
-          const minTableSize = sortedSizes[0];
-          const maxTableSize = sortedSizes[sortedSizes.length - 1];
-          let advisorySize = null;
-          for (let sz = sizeInPx; sz <= maxTableSize; sz += 0.5) {
-            const threshold = minLcFor(sz, lookupWeight);
-            if (threshold != null && threshold <= advisoryForRec.lc) {
-              advisorySize = sz;
-              break;
-            }
-          }
-          // Find lightest weight that meets advisory at detected size
-          let advisoryWeight = null;
-          for (const wk of apcaWeightKeys) {
-            if (wk < weightNum) continue;
-            const threshold = minLcFor(sizeInPx, wk);
-            if (threshold != null && threshold <= advisoryForRec.lc) {
-              advisoryWeight = wk;
-              break;
-            }
-          }
-
-          const szLabel = advisorySize != null
-            ? (advisorySize % 1 === 0 ? `↑ ${advisorySize}px` : `↑ ${advisorySize.toFixed(1)}px`)
+          // Passes table but not advisory — use fontMatrixG to find the
+          // minimum recommended size/weight for this Lc value, same as
+          // apcacontrast.com does.
+          const minRecSize = minSizeForLc(lcNow, lookupWeight);
+          const szLabel = minRecSize != null
+            ? (minRecSize % 1 === 0
+                ? `↑ ${minRecSize}px`
+                : `↑ ${minRecSize.toFixed(1)}px`)
             : "✓";
-          const wkLabel = advisoryWeight != null ? `↑ ${advisoryWeight}` : "✓";
+
+          // Find lightest weight where minSizeForLc(lcNow, wk) <= detected size
+          let minRecWeight = null;
+          for (const wk of fontMatrixWeightKeys) {
+            const minSize = minSizeForLc(lcNow, wk);
+            if (minSize != null && minSize <= sizeInPx) {
+              minRecWeight = wk;
+              break;
+            }
+          }
+          const wkLabel = minRecWeight != null ? `↑ ${minRecWeight}` : "✓";
 
           R.apcaNeededSize.classList.remove("apca-state-pass","apca-state-na");
           R.apcaNeededSize.classList.add("apca-state-suggest");
           R.apcaNeededSize.textContent = szLabel;
-          R.apcaNeededSize.title = `Passes APCA table, but ${advisoryForRec.label} advisory recommends Lc ${advisoryForRec.lc}+`;
+          R.apcaNeededSize.title = `Minimum recommended size for Lc ${lcNow.toFixed(1)} at weight ${lookupWeight}`;
 
           R.apcaNeededWeight.classList.remove("apca-state-pass","apca-state-na");
           R.apcaNeededWeight.classList.add("apca-state-suggest");
           R.apcaNeededWeight.textContent = wkLabel;
-          R.apcaNeededWeight.title = R.apcaNeededSize.title;
+          R.apcaNeededWeight.title = `Minimum recommended weight for Lc ${lcNow.toFixed(1)} at ${sizeInPx}px`;
         }
       } else {
         let bestRec = null, bestScore = Infinity;
@@ -1473,10 +1469,9 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
       R.apcaStatus.classList.add(apcaPass?"apca-pass":"apca-fail");
       calculatedRatioColor = apcaPass ? "#059669" : "#dc2626";
 
-      // ── Advisory note ─────────────────────────────────────
-      // Show or update the informational note below the table.
-      const etSelect = document.getElementById(`${side}-element-type-select`);
-      const currentType = etSelect ? etSelect.value : "body";
+// ── Advisory note ─────────────────────────────────────
+      const etSelectAdvisory = document.getElementById(`${side}-element-type-select`);
+      const currentType = etSelectAdvisory ? etSelectAdvisory.value : "body";
       const advisory = elementTypeAdvisory[currentType];
       let advisoryEl = document.getElementById(`${side}-apca-advisory`);
       if (!advisoryEl) {
