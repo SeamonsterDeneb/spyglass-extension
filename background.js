@@ -7,6 +7,10 @@ const scripting = ext.scripting || {
 const clickTarget = ext.action || ext.browserAction;
 clickTarget.onClicked.addListener(async (tab) => {
   try {
+    await scripting.insertCSS({
+      target: { tabId: tab.id },
+      files: ["spyglass-styles.css"],
+    });
     await scripting.executeScript({
       target: { tabId: tab.id },
       files: ["spyglass.js"],

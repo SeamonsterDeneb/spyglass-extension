@@ -10,7 +10,8 @@ const SOURCE_FILES = [
   'background.js',
   'icon-16.png',
   'icon-48.png',
-  'icon-128.png'
+  'icon-128.png',
+  'spyglass-styles.css'
 ];
 
 function deepMerge(base, override) {
@@ -24,8 +25,10 @@ function deepMerge(base, override) {
       !Array.isArray(base[key])
     ) {
       result[key] = deepMerge(base[key], override[key]);
+    } else if (Array.isArray(base[key]) && Array.isArray(override[key])) {
+      result[key] = base[key].concat(override[key]);
     } else {
-      // Arrays and primitives: override wins outright
+      // Primitives and other array cases: override wins outright
       result[key] = override[key];
     }
   }

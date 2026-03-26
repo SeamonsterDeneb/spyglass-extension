@@ -362,13 +362,13 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
     const pickerToggleBg = isWcag ? "#166534" : "#4C1D95";
 
     return `
-    <div class="sg-panel" id="${S}-panel" style="flex:1;min-width:0;display:flex;flex-direction:column;border-left:${isWcag ? "none" : "2px solid #E5E7EB"};">
+      <div class="sg-panel ${isWcag ? '' : 'sg-panel--apca'}" id="${S}-panel">
 
       <!-- Panel header band -->
-      <div style="padding:0.35rem 0.75rem;background:${headerBg};border-bottom:1px solid ${headerBorder};display:flex;align-items:center;gap:0.5rem;flex-shrink:0;min-width:0;overflow:hidden;">
-        <span style="font-weight:800;font-size:0.8rem;color:${headerColor};letter-spacing:0.08em;text-transform:uppercase;flex-shrink:0;">${headerLabel}</span>
-        <span style="font-size:0.7rem;color:${headerColor};opacity:0.7;flex-shrink:0;">analysis</span>
-        ${!isWcag ? `<select id="${S}-element-type-select" style="margin-left:auto;font-size:0.7rem;font-weight:600;padding:0.15rem 0.3rem;border-radius:0.25rem;border:1px solid ${headerBorder};background:white;color:#374151;cursor:pointer;min-width:0;max-width:100%;flex-shrink:1;">
+      <div class="sg-panel-header sg-panel-header--${S}">
+        <span class="sg-panel-header__label sg-panel-header__label--${S}">${headerLabel}</span>
+        <span class="sg-panel-header__sublabel sg-panel-header__sublabel--${S}">analysis</span>
+        ${!isWcag ? `<select id="${S}-element-type-select" class="sg-panel-header__type-select sg-panel-header__type-select--apca">
           <option value="body">Body Text</option>
           <option value="content">Content Text</option>
           <option value="large">Large / Headlines</option>
@@ -378,56 +378,56 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
         </select>` : ""}
       </div>
 
-      <div id="${S}-panel-body" style="padding:0.75rem;overflow-y:auto;flex-grow:1;">
+      <div id="${S}-panel-body" class="sg-panel-body">
 
         <!-- Color inputs -->
-        <div style="display:flex;align-items:flex-end;gap:0.4rem;margin-bottom:0.75rem;">
+        <div class="sg-color-inputs">
           <!-- FG -->
-          <div id="${S}-fg-container" style="flex-grow:1;">
-            <label style="display:block;font-size:0.75rem;font-weight:500;color:#374151;margin-bottom:0.2rem;">Foreground</label>
-            <div style="display:flex;align-items:center;gap:0.35rem;">
-              <div style="position:relative;width:1rem;height:1.75rem;flex-shrink:0;">
-                <div id="${S}-fg-swatch-btn" style="width:100%;height:100%;border:1px solid #D1D5DB;border-radius:0.25rem;background:#000;"></div>
-                <input type="color" id="${S}-fg-swatch" value="#000000" style="position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;cursor:pointer;padding:0;border:none;">
+          <div id="${S}-fg-container" class="sg-color-field">
+            <label class="sg-color-field__label">Foreground</label>
+            <div class="sg-color-field__row">
+              <div class="sg-color-swatch-wrap">
+                <div id="${S}-fg-swatch-btn" class="sg-color-swatch-btn" style="background:#000;"></div>
+                <input type="color" id="${S}-fg-swatch" value="#000000" class="sg-color-swatch-input">
               </div>
-              <div style="position:relative;flex-grow:1;display:flex;align-items:center;gap:0.3rem;">
-                <div style="flex-grow:1;position:relative;">
-                  <input type="text" id="${S}-fg-color" value="#000000" style="width:100%;height:1.75rem;padding:0.2rem 2rem 0.2rem 0.4rem;border:1px solid #D1D5DB;border-radius:0.25rem;font-size:0.8rem;">
-                  <button id="${S}-copy-fg" title="Copy" style="position:absolute;right:0;top:0;bottom:0;width:2rem;background:transparent;border:none;cursor:pointer;color:#6B7280;display:flex;align-items:center;justify-content:center;">
+              <div class="sg-color-input-wrap">
+                <div class="sg-color-input-inner">
+                  <input type="text" id="${S}-fg-color" value="#000000" class="sg-color-text-input">
+                  <button id="${S}-copy-fg" title="Copy" class="sg-copy-btn">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
                   </button>
                 </div>
-                <div id="${S}-fg-suggestion" style="display:none;cursor:pointer;align-items:center;gap:0.1rem;flex-shrink:0;flex-direction:column;">
-                  <div id="${S}-fg-suggestion-swatch" style="width:16px;height:16px;border-radius:0.25rem;border:1px solid #D1D5DB;background:white;"></div>
-                  <span id="${S}-fg-suggestion-label" style="font-weight:500;color:#4B5563;font-size:0.65rem;line-height:1;">4.5:1</span>
+                <div id="${S}-fg-suggestion" class="sg-suggestion-box">
+                  <div id="${S}-fg-suggestion-swatch" class="sg-suggestion-swatch"></div>
+                  <span id="${S}-fg-suggestion-label" class="sg-suggestion-label">4.5:1</span>
                 </div>
               </div>
             </div>
           </div>
           <!-- Swap -->
-          <div style="flex-shrink:0;padding-bottom:0.1rem;">
+          <div class="sg-swap-btn">
             <button id="${S}-swap-btn" title="Swap colors" style="background:none;border:none;padding:0;cursor:pointer;">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(90deg);"><path d="M17 3v18M7 21V3M4 7l3-3 3 3M20 17l-3 3-3-3"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sg-swap-icon"><path d="M17 3v18M7 21V3M4 7l3-3 3 3M20 17l-3 3-3-3"/></svg>
             </button>
           </div>
           <!-- BG -->
-          <div id="${S}-bg-container" style="flex-grow:1;">
-            <label style="display:block;font-size:0.75rem;font-weight:500;color:#374151;margin-bottom:0.2rem;">Background</label>
-            <div style="display:flex;align-items:center;gap:0.35rem;">
-              <div style="position:relative;width:1rem;height:1.75rem;flex-shrink:0;">
-                <div id="${S}-bg-swatch-btn" style="width:100%;height:100%;border:1px solid #D1D5DB;border-radius:0.25rem;background:#fff;"></div>
-                <input type="color" id="${S}-bg-swatch" value="#ffffff" style="position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;cursor:pointer;padding:0;border:none;">
+          <div id="${S}-bg-container" class="sg-color-field">
+            <label class="sg-color-field__label">Background</label>
+            <div class="sg-color-field__row">
+              <div class="sg-color-swatch-wrap">
+                <div id="${S}-bg-swatch-btn" class="sg-color-swatch-btn" style="background:#fff;"></div>
+                <input type="color" id="${S}-bg-swatch" value="#ffffff" class="sg-color-swatch-input">
               </div>
-              <div style="position:relative;flex-grow:1;display:flex;align-items:center;gap:0.3rem;">
-                <div style="flex-grow:1;position:relative;">
-                  <input type="text" id="${S}-bg-color" value="#FFFFFF" style="width:100%;height:1.75rem;padding:0.2rem 2rem 0.2rem 0.4rem;border:1px solid #D1D5DB;border-radius:0.25rem;font-size:0.8rem;">
-                  <button id="${S}-copy-bg" title="Copy" style="position:absolute;right:0;top:0;bottom:0;width:2rem;background:transparent;border:none;cursor:pointer;color:#6B7280;display:flex;align-items:center;justify-content:center;">
+              <div class="sg-color-input-wrap">
+                <div class="sg-color-input-inner">
+                  <input type="text" id="${S}-bg-color" value="#FFFFFF" class="sg-color-text-input">
+                  <button id="${S}-copy-bg" title="Copy" class="sg-copy-btn">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
                   </button>
                 </div>
-                <div id="${S}-bg-suggestion" style="display:none;cursor:pointer;align-items:center;gap:0.1rem;flex-shrink:0;flex-direction:column;">
-                  <div id="${S}-bg-suggestion-swatch" style="width:16px;height:16px;border-radius:0.25rem;border:1px solid #D1D5DB;background:white;"></div>
-                  <span id="${S}-bg-suggestion-label" style="font-weight:500;color:#4B5563;font-size:0.65rem;line-height:1;">4.5:1</span>
+                <div id="${S}-bg-suggestion" class="sg-suggestion-box">
+                  <div id="${S}-bg-suggestion-swatch" class="sg-suggestion-swatch"></div>
+                  <span id="${S}-bg-suggestion-label" class="sg-suggestion-label">4.5:1</span>
                 </div>
               </div>
             </div>
@@ -435,23 +435,22 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
         </div>
 
         <!-- Tweak panel -->
-        <details id="${S}-tweak-details" style="margin-bottom:0.75rem;">
-          <summary style="font-weight:600;font-size:0.875rem;color:#374151;cursor:pointer;padding:0.4rem 0.5rem;background:#F9FAFB;border-radius:0.25rem;display:flex;justify-content:space-between;align-items:center;">
+        <details id="${S}-tweak-details" class="sg-tweak-details">
+          <summary class="sg-tweak-summary">
             <span>🎨 Tweak Panel</span>
-          </summary>
-          <div id="${S}-tweak-panel" style="background:#F9FAFB;padding:0.6rem;border-radius:0.375rem;margin-bottom:0.5rem;">
-            <div style="overflow:hidden;line-height:1.6;padding-bottom:0.4rem;border-bottom:1px solid #E5E7EB;margin-bottom:0.5rem;">
-              <button id="${S}-tweak-target-btn" style="float:right;background:#E5E7EB;color:#374151;font-size:0.7rem;font-weight:600;padding:0.2rem 0.4rem;border-radius:0.25rem;border:1px solid #D1D5DB;cursor:pointer;margin-left:0.4rem;">Target: 4.5:1</button>
-              <button id="${S}-pixel-analysis-btn" style="float:right;background:#3B82F6;color:#fff;font-size:0.7rem;font-weight:600;padding:0.2rem 0.4rem;border-radius:0.25rem;border:1px solid #2563EB;cursor:pointer;">Pixel: OFF</button>
-              <span style="font-weight:600;font-size:0.875rem;">Tweak Colors</span>
+          </summary>          <div id="${S}-tweak-panel" class="sg-tweak-panel">
+            <div class="sg-tweak-panel__header">
+              <button id="${S}-tweak-target-btn" class="sg-tweak-panel__target-btn">Target: 4.5:1</button>
+              <button id="${S}-pixel-analysis-btn" class="sg-tweak-panel__pixel-btn">Pixel: OFF</button>
+              <span class="sg-tweak-panel__title">Tweak Colors</span>
             </div>
-            <div style="display:flex;flex-direction:column;gap:0.4rem;">
-              <div style="display:grid;grid-template-columns:4.5rem 1fr;align-items:center;gap:0.4rem;">
-                <div style="font-weight:500;font-size:0.8rem;">Foreground</div>
+            <div class="sg-tweak-panel__controls">
+              <div class="sg-tweak-panel__row">
+                <div class="sg-tweak-panel__row-label">Foreground</div>
                 <div id="${S}-fg-tweak-controls"></div>
               </div>
-              <div style="display:grid;grid-template-columns:4.5rem 1fr;align-items:center;gap:0.4rem;">
-                <div style="font-weight:500;font-size:0.8rem;">Background</div>
+              <div class="sg-tweak-panel__row">
+                <div class="sg-tweak-panel__row-label">Background</div>
                 <div id="${S}-bg-tweak-controls"></div>
               </div>
             </div>
@@ -459,52 +458,52 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
         </details>
 
         <!-- Preview + contrast details -->
-        <details id="${S}-preview-details" style="margin-bottom:0.75rem;" open>
-          <summary id="${S}-preview-summary" style="font-weight:600;font-size:1rem;padding:0.5rem 0.75rem;border-radius:0.375rem;cursor:pointer;display:flex;justify-content:space-between;align-items:center;transition:all 0.2s;">
-            <span id="${S}-mini-preview-text" style="font-weight:bold;font-size:0.95rem;padding:0.1rem 0.35rem;border-radius:0.25rem;">Preview</span>
-            <span id="${S}-mini-ratio-pill" style="margin-left:auto;background:#F3F4F6;padding:0.15rem 0.6rem;border-radius:9999px;font-weight:700;font-size:0.8rem;border:2px solid #D1D5DB;line-height:1.4;text-align:center;white-space:nowrap;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;min-width:4rem;">21.00:1</span>
+        <details id="${S}-preview-details" class="sg-preview-details" open>
+          <summary id="${S}-preview-summary" class="sg-preview-summary">
+            <span id="${S}-mini-preview-text" class="sg-preview-summary__text">Preview</span>
+            <span id="${S}-mini-ratio-pill" class="sg-preview-summary__pill">21.00:1</span>
           </summary>
-          <div style="margin-bottom:0.75rem;">
-            <div role="tablist" style="display:flex;gap:0.2rem;padding-left:0.4rem;margin-bottom:-1px;position:relative;z-index:10;align-items:flex-end;">
+          <div class="sg-preview-details__body">
+            <div role="tablist" class="sg-tabs-row">
               <button id="${S}-tab-btn-preview" role="tab" aria-selected="true" class="sg-tab sg-tab-active">Preview</button>
               <button id="${S}-tab-btn-details" role="tab" aria-selected="false" class="sg-tab sg-tab-inactive">
                 <span id="${S}-contrast-ratio-display" style="font-size:1.3em;font-weight:900;display:block;line-height:1.1;">21.00:1</span>
                 <span style="display:block;font-size:0.7rem;line-height:1.2;">Details</span>
               </button>
             </div>
-            <div id="${S}-tab-content-area" style="border:1px solid #D1D5DB;border-radius:0.375rem;border-top-left-radius:0;background:#FFF;height:12rem;overflow-y:auto;position:relative;">
+            <div id="${S}-tab-content-area" class="sg-tab-content-area">
 
               <!-- Preview pane -->
-              <div id="${S}-tab-panel-preview" role="tabpanel" style="display:block;width:100%;min-height:100%;padding:0.75rem;box-sizing:border-box;">
-                <h4 style="font-weight:700;font-size:1rem;margin:0 0 0.4rem 0;">Preview Text</h4>
-                <p id="${S}-preview-line-normal" style="font-size:1rem;margin:0 0 0.4rem 0;padding:0.2rem;">The quick brown fox jumps over the lazy dog. <span id="${S}-preview-status-normal"></span></p>
-                <p id="${S}-preview-line-large" style="font-size:19px;font-weight:700;margin:0;padding:0.2rem;">The quick brown fox jumps over the lazy dog. <span id="${S}-preview-status-large"></span></p>
+              <div id="${S}-tab-panel-preview" role="tabpanel" class="sg-preview-pane">
+                <h4 class="sg-preview-pane__heading">Preview Text</h4>
+                <p id="${S}-preview-line-normal" class="sg-preview-pane__normal">The quick brown fox jumps over the lazy dog. <span id="${S}-preview-status-normal"></span></p>
+                <p id="${S}-preview-line-large" class="sg-preview-pane__large">The quick brown fox jumps over the lazy dog. <span id="${S}-preview-status-large"></span></p>
               </div>
 
               <!-- Details pane -->
-              <div id="${S}-tab-panel-details" role="tabpanel" style="display:none;width:100%;min-height:100%;padding:0.75rem;box-sizing:border-box;">
+              <div id="${S}-tab-panel-details" role="tabpanel" class="sg-details-pane">
 
                 <!-- WCAG grid -->
-                <div id="${S}-wcag-details-grid" style="display:${isWcag ? 'grid' : 'none'};grid-template-columns:1fr 1fr;gap:0.75rem;align-content:start;">
+                <div id="${S}-wcag-details-grid" style="display:${isWcag ? 'grid' : 'none'};" class="sg-wcag-grid">
                   <div>
-                    <div style="font-weight:700;color:#374151;border-bottom:1px solid #E5E7EB;margin-bottom:0.4rem;padding-bottom:0.2rem;font-size:0.85rem;">AA</div>
-                    <div style="display:flex;justify-content:space-between;margin-bottom:0.2rem;font-size:0.8rem;align-items:baseline;"><span>Normal (4.5:1):</span><span id="${S}-status-aa-normal" style="font-weight:700;">Pass</span></div>
-                    <div style="display:flex;justify-content:space-between;margin-bottom:0.2rem;font-size:0.8rem;align-items:baseline;"><span>Large (3:1):</span><span id="${S}-status-aa-large" style="font-weight:700;">Pass</span></div>
-                    <div style="margin-bottom:0.4rem;font-size:0.7rem;color:#6B7280;line-height:1.2;font-style:italic;">(24px+ or 19px+ bold)</div>
-                    <div style="display:flex;justify-content:space-between;font-size:0.8rem;align-items:baseline;"><span>Graphics (3:1):</span><span id="${S}-status-aa-graphics" style="font-weight:700;">Pass</span></div>
+                    <div class="sg-wcag-grid__heading">AA</div>
+                    <div class="sg-wcag-grid__row"><span>Normal (4.5:1):</span><span id="${S}-status-aa-normal" style="font-weight:700;">Pass</span></div>
+                    <div class="sg-wcag-grid__row"><span>Large (3:1):</span><span id="${S}-status-aa-large" style="font-weight:700;">Pass</span></div>
+                    <div class="sg-wcag-grid__note">(24px+ or 19px+ bold)</div>
+                    <div class="sg-wcag-grid__row"><span>Graphics (3:1):</span><span id="${S}-status-aa-graphics" style="font-weight:700;">Pass</span></div>
                   </div>
                   <div>
-                    <div style="font-weight:700;color:#374151;border-bottom:1px solid #E5E7EB;margin-bottom:0.4rem;padding-bottom:0.2rem;font-size:0.85rem;">AAA</div>
-                    <div style="display:flex;justify-content:space-between;margin-bottom:0.2rem;font-size:0.8rem;align-items:baseline;"><span>Normal (7:1):</span><span id="${S}-status-aaa-normal" style="font-weight:700;">Pass</span></div>
-                    <div style="display:flex;justify-content:space-between;margin-bottom:0.2rem;font-size:0.8rem;align-items:baseline;"><span>Large (4.5:1):</span><span id="${S}-status-aaa-large" style="font-weight:700;">Pass</span></div>
-                    <div style="margin-bottom:0.4rem;font-size:0.7rem;color:#6B7280;line-height:1.2;font-style:italic;">(24px+ or 19px+ bold)</div>
+                    <div class="sg-wcag-grid__heading">AAA</div>
+                    <div class="sg-wcag-grid__row"><span>Normal (7:1):</span><span id="${S}-status-aaa-normal" style="font-weight:700;">Pass</span></div>
+                    <div class="sg-wcag-grid__row"><span>Large (4.5:1):</span><span id="${S}-status-aaa-large" style="font-weight:700;">Pass</span></div>
+                    <div class="sg-wcag-grid__note">(24px+ or 19px+ bold)</div>
                   </div>
                 </div>
 
                 <!-- APCA panel -->
                 <div id="${S}-apca-details-panel" style="display:${isWcag ? 'none' : 'block'};">
-                  <div class="apca-panel-header">
-                    <span class="apca-panel-title">APCA Requirements (Bronze)</span>
+                  <div class="sg-apca-header">
+                    <span class="sg-apca-title">APCA Requirements (Bronze)</span>
                     <span id="${S}-apca-status"></span>
                   </div>
                   <table id="${S}-apca-table" class="apca-table">
@@ -545,21 +544,21 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
         </details>
 
         <!-- Pickers -->
-        <div style="display:flex;flex-direction:column;gap:0.4rem;margin-bottom:0.75rem;">
-          <div style="display:flex;gap:0.4rem;align-items:stretch;">
-            <button id="${S}-activate-element-picker-btn" style="flex:1 1 0%;background:${pickerBg};color:white;font-weight:700;padding:0.4rem;border-radius:0.375rem;border:none;cursor:pointer;line-height:1.3;min-height:3.25rem;display:flex;align-items:center;justify-content:center;text-align:center;font-size:0.875rem;">
+        <div class="sg-pickers">
+          <div class="sg-pickers__row">
+            <button id="${S}-activate-element-picker-btn" class="sg-pickers__element-btn sg-pickers__element-btn--${S}">
               Element Picker
             </button>
-            <button id="${S}-element-picker-mode-toggle" style="width:4.5rem;background:${pickerToggleBg};color:white;font-weight:700;padding:0.4rem;border-radius:0.375rem;border:none;cursor:pointer;font-size:0.8rem;">
+            <button id="${S}-element-picker-mode-toggle" class="sg-pickers__mode-btn sg-pickers__mode-btn--${S}">
               Resting
             </button>
           </div>
-          <button id="${S}-activate-overlay-picker-btn" style="background:#5B21B6;color:white;font-weight:700;padding:0.4rem;border-radius:0.375rem;border:none;cursor:pointer;line-height:1.3;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:0.875rem;">
-            Overlay Picker<span style="font-size:0.65rem;display:block;">(pixel analysis)</span>
+          <button id="${S}-activate-overlay-picker-btn" class="sg-pickers__overlay-btn">
+            Overlay Picker<span class="sg-pickers__overlay-sublabel">(pixel analysis)</span>
           </button>
         </div>
 
-        <div id="${S}-picker-status" style="text-align:center;font-size:0.8rem;color:#1D4ED8;font-weight:600;min-height:2.5rem;display:flex;align-items:center;justify-content:center;visibility:hidden;margin-bottom:0.4rem;"></div>
+        <div id="${S}-picker-status" class="sg-picker-status"></div>
 
       </div><!-- end panel-body -->
     </div><!-- end sg-panel -->
@@ -572,15 +571,15 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
   // column is visible. In Unified mode it stretches to hold both columns.
   const outerHTML = `
     <!-- Full-width drag handle / title bar -->
-    <div id="drag-handle" style="cursor:move;padding:0.5rem 1rem;background:#F3F4F6;border-bottom:1px solid #E5E7EB;border-top-left-radius:0.5rem;border-top-right-radius:0.5rem;flex-shrink:0;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.35rem;">
-        <h3 style="font-weight:700;font-size:1.125rem;color:#1F2937;">
-          <img src="SPYGLASS_ICON_URL_PLACEHOLDER" alt="" style="height:1.2em;vertical-align:middle;margin-right:0.5em;">
+    <div id="drag-handle" class="sg-drag-handle">
+      <div class="sg-drag-handle__top">
+        <h3 class="sg-drag-handle__title">
+          <img src="SPYGLASS_ICON_URL_PLACEHOLDER" alt="" class="sg-drag-handle__icon">
           Spyglass Contrast Checker (v${version})
         </h3>
-        <button id="close-checker-btn" aria-label="Close" style="font-size:1.25rem;font-weight:700;color:#6B7280;line-height:1;padding:0.25rem;border-radius:0.25rem;">✕</button>
+        <button id="close-checker-btn" aria-label="Close" class="sg-drag-handle__close">✕</button>
       </div>
-      <div style="display:flex;align-items:center;gap:0.5rem;">
+      <div class="sg-drag-handle__modes">
         <span class="spyglass-algo-label">Mode:</span>
         <label class="spyglass-algo-option"><input type="radio" name="contrast-algorithm" id="algo-wcag" value="wcag" checked> WCAG</label>
         <label class="spyglass-algo-option"><input type="radio" name="contrast-algorithm" id="algo-apca" value="apca"> APCA</label>
@@ -589,13 +588,13 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
     </div>
 
     <!-- Two-column body -->
-    <div id="panels-row" style="display:flex;flex-direction:row;flex-grow:1;overflow:hidden;">
+    <div id="panels-row" class="sg-panels-row">
       ${buildPanelHTML("wcag")}
       ${buildPanelHTML("apca")}
     </div>
 
     <!-- Footer -->
-    <div style="flex-shrink:0;padding:0.35rem 0.75rem;border-top:1px solid #E5E7EB;text-align:center;font-size:0.7rem;color:#6B7280;">
+    <div class="sg-footer">
       Created by <a href="https://seamonsterstudios.com" target="_blank" rel="noopener" style="color:#6B7280;text-decoration:underline !important;">SeaMonster Studios</a>
     </div>
   `;
@@ -656,7 +655,7 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
     "#contrast-checker-container .tweak-btn{background-color:#E5E7EB;border:1px solid #D1D5DB;border-radius:9999px;width:1.4rem;height:1.4rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;background-repeat:no-repeat;background-position:center;background-size:11px 11px;padding:0 !important;}",
     "#contrast-checker-container .tweak-btn:hover{background-color:#D1D5DB;}",
     // Pass/fail colours
-    "#contrast-checker-container .pass{color:#059669 !important;}",
+    "#contrast-checker-container .pass{color:#047e58 !important;}",
     "#contrast-checker-container .fail{color:#dc2626 !important;}",
     // Picker cursor
     "body.element-picking-cursor,body.element-picking-cursor *{cursor:pointer !important;}",
@@ -675,12 +674,7 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
     "#contrast-checker-container .spyglass-algo-label{font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:#6B7280;}",
     "#contrast-checker-container .spyglass-algo-option{display:flex;align-items:center;gap:0.25rem;cursor:pointer;font-size:0.8rem;color:#374151;line-height:1.6;}",
     '#contrast-checker-container .spyglass-algo-option input[type="radio"]{appearance:auto;-webkit-appearance:radio;width:auto;height:auto;cursor:pointer;}',
-    // Close button
-    "#contrast-checker-container #close-checker-btn{color:#6B7280 !important;}",
-    "#contrast-checker-container #close-checker-btn:hover{background:#E5E7EB !important;color:#1F2937 !important;}",
     // APCA table (shared class names used in both panels)
-    "#contrast-checker-container .apca-panel-header{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #E5E7EB;margin-bottom:0.5rem;padding-bottom:0.25rem;}",
-    "#contrast-checker-container .apca-panel-title{font-weight:700;color:#374151;font-size:0.85rem;}",
     "#contrast-checker-container [id$='-apca-status']{font-weight:700;font-size:0.75rem;padding:0.15rem 0.5rem;border-radius:0.375rem;color:white;}",
     "#contrast-checker-container .apca-table{width:100%;border-collapse:collapse !important;font-size:0.78rem;}",
     "#contrast-checker-container .apca-table thead tr{color:#6B7280;}",
@@ -693,11 +687,11 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
     "#contrast-checker-container .apca-detected{font-weight:700;}",
     "#contrast-checker-container .apca-needed{font-weight:700;}",
     "#contrast-checker-container .apca-rec{color:#9CA3AF;}",
-    "#contrast-checker-container .apca-state-pass{color:#059669 !important;}",
+    "#contrast-checker-container .apca-state-pass{color:#047e58 !important;}",
     "#contrast-checker-container .apca-state-suggest{color:#92400E !important;}",
     "#contrast-checker-container .apca-state-na{color:#9CA3AF !important;}",
     "#contrast-checker-container .apca-rec-active{color:#1D4ED8 !important;font-weight:700;}",
-    "#contrast-checker-container [id$='-apca-status'].apca-pass{background-color:#059669;}",
+    "#contrast-checker-container [id$='-apca-status'].apca-pass{background-color:#047e58;}",
     "#contrast-checker-container [id$='-apca-status'].apca-fail{background-color:#dc2626;}",
     // Rec column green background
     "#contrast-checker-container .sg-rec-cell{background-color:#F0FDF4 !important;}",
@@ -711,11 +705,106 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
     "#contrast-checker-container.sg-unified{width:54rem !important;}",
     // Picker active highlight on input wrapper
     "#contrast-checker-container .picking-active{box-shadow:0 0 0 3px rgba(59,130,246,0.7);transition:box-shadow 0.2s;border-radius:0.375rem;}",
-    // Button colour overrides (keep text white regardless of host page)
-    "#contrast-checker-container [id$='-activate-element-picker-btn']{color:#fff !important;}",
-    "#contrast-checker-container [id$='-element-picker-mode-toggle']{color:#fff !important;}",
-    "#contrast-checker-container [id$='-activate-overlay-picker-btn']{color:#fff !important;}",
-    "#contrast-checker-container [id$='-activate-overlay-picker-btn']:hover{background:#6B7280 !important;}",
+    // Panel header band
+    "#contrast-checker-container .sg-panel-header{display:flex;align-items:center;gap:0.5rem;flex-shrink:0;min-width:0;overflow:hidden;padding:0.35rem 0.75rem;border-bottom-width:1px;border-bottom-style:solid;}",
+    "#contrast-checker-container .sg-panel-header--wcag{background:#EFF6FF;border-bottom-color:#BFDBFE;}",
+    "#contrast-checker-container .sg-panel-header--apca{background:#F5F3FF;border-bottom-color:#DDD6FE;}",
+    "#contrast-checker-container .sg-panel-header__label{font-weight:800;font-size:0.8rem;letter-spacing:0.08em;text-transform:uppercase;flex-shrink:0;}",
+    "#contrast-checker-container .sg-panel-header__label--wcag{color:#1E40AF;}",
+    "#contrast-checker-container .sg-panel-header__label--apca{color:#5B21B6;}",
+    "#contrast-checker-container .sg-panel-header__sublabel{font-size:0.7rem;opacity:0.7;flex-shrink:0;}",
+    "#contrast-checker-container .sg-panel-header__sublabel--wcag{color:#1E40AF;}",
+    "#contrast-checker-container .sg-panel-header__sublabel--apca{color:#5B21B6;}",
+    "#contrast-checker-container .sg-panel-header__type-select{margin-left:auto;font-size:0.7rem;font-weight:600;padding:0.15rem 0.3rem;border-radius:0.25rem;background:white;color:#374151;cursor:pointer;min-width:0;max-width:100%;flex-shrink:1;}",
+    "#contrast-checker-container .sg-panel-header__type-select--apca{border-color:#DDD6FE;}",
+    // Color input rows
+    "#contrast-checker-container .sg-color-inputs{display:flex;align-items:flex-end;gap:0.4rem;margin-bottom:0.75rem;}",
+    "#contrast-checker-container .sg-color-field{flex-grow:1;}",
+    "#contrast-checker-container .sg-color-field__label{display:block;font-size:0.75rem;font-weight:500;color:#374151;margin-bottom:0.2rem;}",
+    "#contrast-checker-container .sg-color-field__row{display:flex;align-items:center;gap:0.35rem;}",
+    "#contrast-checker-container .sg-color-swatch-wrap{position:relative;width:1rem;height:1.75rem;flex-shrink:0;}",
+    "#contrast-checker-container .sg-color-swatch-btn{width:100%;height:100%;border:1px solid #D1D5DB;border-radius:0.25rem;}",
+    "#contrast-checker-container .sg-color-swatch-input{position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;cursor:pointer;padding:0;border:none;}",
+    "#contrast-checker-container .sg-color-input-wrap{position:relative;flex-grow:1;display:flex;align-items:center;gap:0.3rem;}",
+    "#contrast-checker-container .sg-color-input-inner{flex-grow:1;position:relative;}",
+    "#contrast-checker-container .sg-color-text-input{width:100%;height:1.75rem;padding:0.2rem 2rem 0.2rem 0.4rem;border:1px solid #D1D5DB;border-radius:0.25rem;font-size:0.8rem;}",
+    "#contrast-checker-container .sg-copy-btn{position:absolute;right:0;top:0;bottom:0;width:2rem;background:transparent;border:none;cursor:pointer;color:#6B7280;display:flex;align-items:center;justify-content:center;}",
+    "#contrast-checker-container .sg-suggestion-box{display:none;cursor:pointer;align-items:center;gap:0.1rem;flex-shrink:0;flex-direction:column;}",
+    "#contrast-checker-container .sg-suggestion-swatch{width:16px;height:16px;border-radius:0.25rem;border:1px solid #D1D5DB;background:white;}",
+    "#contrast-checker-container .sg-suggestion-label{font-weight:500;color:#4B5563;font-size:0.65rem;line-height:1;}",
+    "#contrast-checker-container .sg-swap-btn{flex-shrink:0;padding-bottom:0.1rem;}",
+    // Tweak panel
+    "#contrast-checker-container .sg-tweak-panel{background:#F9FAFB;padding:0.6rem;border-radius:0.375rem;margin-bottom:0.5rem;}",
+    "#contrast-checker-container .sg-tweak-panel__header{overflow:hidden;line-height:1.6;padding-bottom:0.4rem;border-bottom:1px solid #E5E7EB;margin-bottom:0.5rem;}",
+    "#contrast-checker-container .sg-tweak-panel__target-btn{float:right;background:#E5E7EB;color:#374151;font-size:0.7rem;font-weight:600;padding:0.2rem 0.4rem;border-radius:0.25rem;border:1px solid #D1D5DB;cursor:pointer;margin-left:0.4rem;}",
+    "#contrast-checker-container .sg-tweak-panel__pixel-btn{float:right;background:#3B82F6;color:#fff;font-size:0.7rem;font-weight:600;padding:0.2rem 0.4rem;border-radius:0.25rem;border:1px solid #2563EB;cursor:pointer;}",
+    "#contrast-checker-container .sg-tweak-panel__title{font-weight:600;font-size:0.875rem;}",
+    "#contrast-checker-container .sg-tweak-panel__controls{display:flex;flex-direction:column;gap:0.4rem;}",
+    "#contrast-checker-container .sg-tweak-panel__row{display:grid;grid-template-columns:4.5rem 1fr;align-items:center;gap:0.4rem;}",
+    "#contrast-checker-container .sg-tweak-panel__row-label{font-weight:500;font-size:0.8rem;}",
+    // Preview/details area
+    "#contrast-checker-container .sg-preview-details{margin-bottom:0.75rem;}",
+    "#contrast-checker-container .sg-preview-summary{font-weight:600;font-size:1rem;padding:0.5rem 0.75rem;border-radius:0.375rem;cursor:pointer;display:flex;justify-content:space-between;align-items:center;transition:all 0.2s;}",
+    "#contrast-checker-container .sg-preview-summary__text{font-weight:bold;font-size:0.95rem;padding:0.1rem 0.35rem;border-radius:0.25rem;}",
+    "#contrast-checker-container .sg-preview-summary__pill{margin-left:auto;background:#F3F4F6;padding:0.15rem 0.6rem;border-radius:9999px;font-weight:700;font-size:0.8rem;border:2px solid #D1D5DB;line-height:1.4;text-align:center;white-space:nowrap;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;min-width:4rem;}",
+    "#contrast-checker-container .sg-tabs-row{display:flex;gap:0.2rem;padding-left:0.4rem;margin-bottom:-1px;position:relative;z-index:10;align-items:flex-end;}",
+    "#contrast-checker-container .sg-tab-content-area{border:1px solid #D1D5DB;border-radius:0.375rem;border-top-left-radius:0;background:#FFF;height:12rem;overflow-y:auto;position:relative;}",
+    "#contrast-checker-container .sg-preview-pane{display:block;width:100%;min-height:100%;padding:0.75rem;box-sizing:border-box;}",
+    "#contrast-checker-container .sg-preview-pane__heading{font-weight:700;font-size:1rem;margin:0 0 0.4rem 0;}",
+    "#contrast-checker-container .sg-preview-pane__normal{font-size:1rem;margin:0 0 0.4rem 0;padding:0.2rem;}",
+    "#contrast-checker-container .sg-preview-pane__large{font-size:19px;font-weight:700;margin:0;padding:0.2rem;}",
+    "#contrast-checker-container .sg-details-pane{display:none;width:100%;min-height:100%;padding:0.75rem;box-sizing:border-box;}",
+    "#contrast-checker-container .sg-wcag-grid{grid-template-columns:1fr 1fr;gap:0.75rem;align-content:start;}",
+    "#contrast-checker-container .sg-wcag-grid__heading{font-weight:700;color:#374151;border-bottom:1px solid #E5E7EB;margin-bottom:0.4rem;padding-bottom:0.2rem;font-size:0.85rem;}",
+    "#contrast-checker-container .sg-wcag-grid__row{display:flex;justify-content:space-between;margin-bottom:0.2rem;font-size:0.8rem;align-items:baseline;}",
+    "#contrast-checker-container .sg-wcag-grid__note{margin-bottom:0.4rem;font-size:0.7rem;color:#6B7280;line-height:1.2;font-style:italic;}",
+        // APCA table and advisory note
+    "#contrast-checker-container .sg-apca-panel{display:block;}",
+    "#contrast-checker-container .sg-apca-header{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #E5E7EB;margin-bottom:0.5rem;padding-bottom:0.25rem;}",
+    "#contrast-checker-container .sg-apca-title{font-weight:700;color:#374151;font-size:0.85rem;}",
+    "#contrast-checker-container .sg-apca-advisory{margin-top:0.5rem;padding:0.35rem 0.5rem;border-radius:0.25rem;font-size:0.72rem;line-height:1.4;border-left:3px solid #DDD6FE;background:#F5F3FF;color:#5B21B6;}",
+    "#contrast-checker-container .sg-apca-advisory--pass{border-left-color:#6EE7B7;background:#F0FDF4;color:#065F46;}",
+    "#contrast-checker-container .sg-apca-advisory--fail{border-left-color:#FCA5A5;background:#FFF7F7;color:#991B1B;}",
+    // Picker buttons and status
+    "#contrast-checker-container .sg-pickers{display:flex;flex-direction:column;gap:0.4rem;margin-bottom:0.75rem;}",
+    "#contrast-checker-container .sg-pickers__row{display:flex;gap:0.4rem;align-items:stretch;}",
+    "#contrast-checker-container .sg-pickers__element-btn{flex:1 1 0%;font-weight:700;padding:0.4rem;border-radius:0.375rem;border:none;cursor:pointer;line-height:1.3;min-height:3.25rem;display:flex;align-items:center;justify-content:center;text-align:center;font-size:0.875rem;color:white !important;}",
+    "#contrast-checker-container .sg-pickers__element-btn--wcag{background:#14873D;}",
+    "#contrast-checker-container .sg-pickers__element-btn--apca{background:#5B21B6;}",
+    "#contrast-checker-container .sg-pickers__mode-btn{width:4.5rem;font-weight:700;padding:0.4rem;border-radius:0.375rem;border:none;cursor:pointer;font-size:0.8rem;color:white !important;}",
+    "#contrast-checker-container .sg-pickers__mode-btn--wcag{background:#166534;}",
+    "#contrast-checker-container .sg-pickers__mode-btn--apca{background:#4C1D95;}",
+    "#contrast-checker-container .sg-pickers__overlay-btn{font-weight:700;padding:0.4rem;border-radius:0.375rem;border:none;cursor:pointer;line-height:1.3;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:0.875rem;background:#5B21B6;color:white !important;}",
+    "#contrast-checker-container .sg-pickers__overlay-btn:hover{background:#6B7280 !important;}",
+    "#contrast-checker-container .sg-pickers__overlay-sublabel{font-size:0.65rem;display:block;}",
+    "#contrast-checker-container .sg-picker-status{text-align:center;font-size:0.8rem;color:#1D4ED8;font-weight:600;min-height:2.5rem;display:flex;align-items:center;justify-content:center;visibility:hidden;margin-bottom:0.4rem;}",
+    "#contrast-checker-container .sg-panel-body{padding:0.75rem;overflow-y:auto;flex-grow:1;}",
+    // Outer container and title bar
+    "#contrast-checker-container .sg-drag-handle{cursor:move;padding:0.5rem 1rem;background:#F3F4F6;border-bottom:1px solid #E5E7EB;border-top-left-radius:0.5rem;border-top-right-radius:0.5rem;flex-shrink:0;}",
+    "#contrast-checker-container .sg-drag-handle__top{display:flex;justify-content:space-between;align-items:center;margin-bottom:0.35rem;}",
+    "#contrast-checker-container .sg-drag-handle__title{font-weight:700;font-size:1.125rem;color:#1F2937;}",
+    "#contrast-checker-container .sg-drag-handle__icon{height:1.2em;vertical-align:middle;margin-right:0.5em;}",
+    "#contrast-checker-container .sg-drag-handle__close{font-size:1.25rem;font-weight:700;color:#6B7280 !important;line-height:1;padding:0.25rem;border-radius:0.25rem;}",
+    "#contrast-checker-container .sg-drag-handle__close:hover{background:#E5E7EB !important;color:#1F2937 !important;}",
+    "#contrast-checker-container .sg-drag-handle__modes{display:flex;align-items:center;gap:0.5rem;}",
+    "#contrast-checker-container .sg-panels-row{display:flex;flex-direction:row;flex-grow:1;overflow:hidden;}",
+    "#contrast-checker-container .sg-panel{flex:1;min-width:0;display:flex;flex-direction:column;}",
+    "#contrast-checker-container .sg-panel--apca{border-left:2px solid #E5E7EB;}",
+    "#contrast-checker-container .sg-footer{flex-shrink:0;padding:0.35rem 0.75rem;border-top:1px solid #E5E7EB;text-align:center;font-size:0.7rem;color:#6B7280;}",
+    // Dynamic JS element classes
+    "#contrast-checker-container .sg-tweak-controls{display:flex;justify-content:space-around;align-items:center;}",
+    "#contrast-checker-container .sg-tweak-control-group{display:flex;align-items:center;gap:0.2rem;}",
+    "#contrast-checker-container .sg-tweak-channel-label{font-weight:700;width:0.85rem;text-align:center;font-size:0.85rem;}",
+    "#contrast-checker-container .sg-tweak-channel-label--r{color:#dc2626;}",
+    "#contrast-checker-container .sg-tweak-channel-label--g{color:#16a34a;}",
+    "#contrast-checker-container .sg-tweak-channel-label--b{color:#2563eb;}",
+    "#contrast-checker-container .sg-preview-badge{padding:0.1rem 0.4rem;border-radius:0.25rem;font-size:0.7em;font-weight:bold;margin-left:0.4rem;vertical-align:middle;display:inline-block;}",
+    "#contrast-checker-container .sg-preview-badge--pass{background:#065f46;color:white;}",
+    "#contrast-checker-container .sg-preview-badge--fail{background:#b91c1c;color:white;}",
+    "#contrast-checker-container .sg-ratio-type-label{font-size:0.6em;color:#6B7280;}",
+    "#contrast-checker-container .sg-tweak-details{margin-bottom:0.75rem;}",
+    "#contrast-checker-container .sg-tweak-summary{font-weight:600;font-size:0.875rem;color:#374151;cursor:pointer;padding:0.4rem 0.5rem;background:#F9FAFB;border-radius:0.25rem;display:flex;justify-content:space-between;align-items:center;}",
+    "#contrast-checker-container .sg-preview-details__body{margin-bottom:0.75rem;}",
   ].join(" ");
   document.head.appendChild(styleSheet);
 
@@ -1103,7 +1192,7 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
   // ─── UPDATE MINI RATIO PILL ───────────────────────────────
   function updateMiniRatioPill(pill, minContrast, maxContrast, isRange, tweakTarget, usingAPCA) {
     const pillLabel = val => usingAPCA ? `Lc ${val.toFixed(1)}` : `${val.toFixed(2)}:1`;
-    const pillColor = minContrast>=tweakTarget ? "#059669" : "#dc2626";
+    const pillColor = minContrast>=tweakTarget ? "#047e58" : "#dc2626";
     pill.style.color = pillColor;
     pill.style.borderColor = pillColor;
     pill.style.backgroundColor = "#F3F4F6";
@@ -1207,8 +1296,8 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
 
       // Label the ratio display
       R.contrastRatioDisplay.textContent = contrastDisplay + " ";
-      const typeSpan = document.createElement("span");
-      typeSpan.style.cssText = "font-size:0.6em;color:#6B7280;";
+const typeSpan = document.createElement("span");
+      typeSpan.className = "sg-ratio-type-label";
       typeSpan.textContent = `(${pixelAnalysisResult.type})`;
       R.contrastRatioDisplay.appendChild(typeSpan);
     } else {
@@ -1467,7 +1556,7 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
       R.apcaStatus.textContent = apcaPass?"PASS":"FAIL";
       R.apcaStatus.classList.remove("apca-pass","apca-fail");
       R.apcaStatus.classList.add(apcaPass?"apca-pass":"apca-fail");
-      calculatedRatioColor = apcaPass ? "#059669" : "#dc2626";
+      calculatedRatioColor = apcaPass ? "#047e58" : "#dc2626";
 
 // ── Advisory note ─────────────────────────────────────
       const etSelectAdvisory = document.getElementById(`${side}-element-type-select`);
@@ -1477,14 +1566,12 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
       if (!advisoryEl) {
         advisoryEl = document.createElement("div");
         advisoryEl.id = `${side}-apca-advisory`;
-        advisoryEl.style.cssText = "margin-top:0.5rem;padding:0.35rem 0.5rem;border-radius:0.25rem;font-size:0.72rem;line-height:1.4;border-left:3px solid #DDD6FE;background:#F5F3FF;color:#5B21B6;";
+        advisoryEl.className = "sg-apca-advisory";
         const tableEl = document.getElementById(`${side}-apca-table`);
         if (tableEl && tableEl.parentNode) tableEl.parentNode.appendChild(advisoryEl);
       }
       const meetsAdvisory = lcNow >= advisory.lc;
-      advisoryEl.style.borderLeftColor = meetsAdvisory ? "#6EE7B7" : "#FCA5A5";
-      advisoryEl.style.backgroundColor = meetsAdvisory ? "#F0FDF4" : "#FFF7F7";
-      advisoryEl.style.color = meetsAdvisory ? "#065F46" : "#991B1B";
+      advisoryEl.className = `sg-apca-advisory ${meetsAdvisory ? "sg-apca-advisory--pass" : "sg-apca-advisory--fail"}`;
       advisoryEl.textContent = meetsAdvisory
         ? `✓ Meets advisory for ${advisory.label}: Lc ${advisory.lc}+`
         : `Advisory for ${advisory.label}: ${advisory.note} (currently Lc ${lcNow.toFixed(1)})`;
@@ -1671,20 +1758,15 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
 
       const passNormal = contrast >= 4.5;
       const passLarge  = contrast >= 3.0;
-      const badgeStyle = "padding:0.1rem 0.4rem;border-radius:0.25rem;font-size:0.7em;font-weight:bold;margin-left:0.4rem;vertical-align:middle;display:inline-block;";
-      const passStyle  = "background:#065f46;color:white;";
-      const failStyle  = "background:#b91c1c;color:white;";
-
       R.previewStatusNormal.textContent = passNormal
         ? `Regular Text (${currentFontSize}, ${currentFontWeight}): Pass`
         : `Regular Text (${currentFontSize}, ${currentFontWeight}): Fail`;
-      R.previewStatusNormal.style.cssText = badgeStyle + (passNormal ? passStyle : failStyle);
+      R.previewStatusNormal.className = `sg-preview-badge ${passNormal ? "sg-preview-badge--pass" : "sg-preview-badge--fail"}`;
 
       R.previewStatusLarge.textContent = passLarge
         ? `Large Text (${currentFontSize}, ${currentFontWeight}): Pass`
         : `Large Text (${currentFontSize}, ${currentFontWeight}): Fail`;
-      R.previewStatusLarge.style.cssText = badgeStyle + (passLarge ? passStyle : failStyle);
-
+      R.previewStatusLarge.className = `sg-preview-badge ${passLarge ? "sg-preview-badge--pass" : "sg-preview-badge--fail"}`;
       if (contrast < ps.tweakTargetContrast) {
         R.fgSuggestionBox.style.display = "flex";
         R.bgSuggestionBox.style.display = "flex";
@@ -1734,7 +1816,7 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
         R.bgSuggestionBox.style.display = "none";
       }
 
-      calculatedRatioColor = contrast < ps.tweakTargetContrast ? "#dc2626" : "#059669";
+      calculatedRatioColor = contrast < ps.tweakTargetContrast ? "#dc2626" : "#047e58";
     }
 
     R.contrastRatioDisplay.style.color = calculatedRatioColor;
@@ -1773,11 +1855,11 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
     const tweakContainer = document.getElementById(containerId);
     if (!tweakContainer) return;
     while (tweakContainer.firstChild) tweakContainer.removeChild(tweakContainer.firstChild);
-    tweakContainer.style.cssText = "display:flex;justify-content:space-around;align-items:center;";
+    tweakContainer.className = "sg-tweak-controls";
 
     ["r","g","b"].forEach(channel => {
       const group = document.createElement("div");
-      group.style.cssText = "display:flex;align-items:center;gap:0.2rem;";
+      group.className = "sg-tweak-control-group";
 
       const minusBtn = document.createElement("button");
       minusBtn.className = "tweak-btn";
@@ -1787,10 +1869,7 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
 
       const label = document.createElement("span");
       label.textContent = channel.toUpperCase();
-      label.style.cssText = "font-weight:700;width:0.85rem;text-align:center;font-size:0.85rem;";
-      if (channel==="r") label.style.color="#dc2626";
-      if (channel==="g") label.style.color="#16a34a";
-      if (channel==="b") label.style.color="#2563eb";
+      label.className = `sg-tweak-channel-label sg-tweak-channel-label--${channel}`;
 
       const plusBtn = document.createElement("button");
       plusBtn.className = "tweak-btn";
@@ -1851,7 +1930,7 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
     document.execCommand("copy");
     const copiedSpan = document.createElement("span");
     copiedSpan.textContent = "Copied!";
-    copiedSpan.style.cssText = "position:absolute;right:2rem;top:50%;transform:translateY(-50%);background:white;padding:0.1rem 0.4rem;border-radius:0.25rem;color:#059669;font-weight:600;font-size:0.8rem;white-space:nowrap;pointer-events:none;";
+    copiedSpan.style.cssText = "position:absolute;right:2rem;top:50%;transform:translateY(-50%);background:white;padding:0.1rem 0.4rem;border-radius:0.25rem;color:#047e58;font-weight:600;font-size:0.8rem;white-space:nowrap;pointer-events:none;";
     buttonEl.parentElement.appendChild(copiedSpan);
     setTimeout(() => copiedSpan.remove(), 1500);
   }
@@ -2073,7 +2152,7 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
         if (!pixelAnalyzer) pixelAnalyzer = new ImageBackgroundAnalyzer();
         R.pixelAnalysisBtn.textContent = "Pixel: ON";
         R.pixelAnalysisBtn.style.backgroundColor = "#10B981";
-        R.pixelAnalysisBtn.style.borderColor = "#059669";
+        R.pixelAnalysisBtn.style.borderColor = "#047e58";
         if (currentElement) await performPixelAnalysis(currentElement);
       } else {
         R.pixelAnalysisBtn.textContent = "Pixel: OFF";
@@ -2093,7 +2172,7 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
       isPixelAnalysisEnabled = true;
       R.pixelAnalysisBtn.textContent = "Pixel: ON";
       R.pixelAnalysisBtn.style.backgroundColor = "#10B981";
-      R.pixelAnalysisBtn.style.borderColor = "#059669";
+      R.pixelAnalysisBtn.style.borderColor = "#047e58";
       startElementPicking(side, true);
     });
 
