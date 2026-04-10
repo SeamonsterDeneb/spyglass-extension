@@ -1,6 +1,5 @@
 // ============================================================
-// SPYGLASS CONTRAST CHECKER — chunk 1 of 3
-// Paste this first, then chunk 2 immediately after, then chunk 3.
+// SPYGLASS CONTRAST CHECKER — v2.1
 // ============================================================
 import { minSizeForLc, fontMatrixWeightKeys } from "./apca-lookup.js";
 import { APCAcontrast, sRGBtoY } from "apca-w3";
@@ -324,7 +323,7 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
   }
 
   // ─── CONSTANTS & SHARED STATE ─────────────────────────────
-  const version = "2.0";
+  const version = "2.1";
 
   // Shared state — both panels read/write these
   let sharedFgHex = "#000000";
@@ -634,7 +633,7 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
 // ============================================================
 
   // ─── STYLES ───────────────────────────────────────────────
-  const styleSheet = document.createElement("style");
+  /*const styleSheet = document.createElement("style");
   styleSheet.innerText = [
     // Container reset
     '#contrast-checker-container{box-sizing:border-box;text-align:left;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:#374151;line-height:1.5;}',
@@ -806,7 +805,7 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
     "#contrast-checker-container .sg-tweak-summary{font-weight:600;font-size:0.875rem;color:#374151;cursor:pointer;padding:0.4rem 0.5rem;background:#F9FAFB;border-radius:0.25rem;display:flex;justify-content:space-between;align-items:center;}",
     "#contrast-checker-container .sg-preview-details__body{margin-bottom:0.75rem;}",
   ].join(" ");
-  document.head.appendChild(styleSheet);
+  document.head.appendChild(styleSheet); */
 
   // ─── MATH & COLOR HELPERS ─────────────────────────────────
 
@@ -957,12 +956,12 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
   // Purely informational — does not affect pass/fail calculations.
   // These are APCA's general guidance levels for each use case.
   const elementTypeAdvisory = {
-    body:    { lc: 75, label: "Body Text",          note: "Recommended Lc 75+ for fluent reading" },
-    content: { lc: 60, label: "Content Text",       note: "Recommended Lc 60+ for readable non-body text" },
-    large:   { lc: 45, label: "Large / Headlines",  note: "Recommended Lc 45+ for large or bold text" },
-    spot:    { lc: 30, label: "Spot / Placeholder", note: "Recommended Lc 30+ for spot-readable text" },
-    ui:      { lc: 30, label: "UI Component",       note: "Recommended Lc 30+ for icons and UI elements" },
-    nontext: { lc: 15, label: "Non-text Element",   note: "Recommended Lc 15+ for dividers and borders" },
+    body:    { lc: 75, label: "Body Text",        note: "Recommended Lc 75+ for fluent reading", definition: "Main text for long-form reading. High contrast is required to prevent eye strain during extended reading sessions." },
+    content: { lc: 60, label: "Content Text",       note: "Recommended Lc 60+ for readable non-body text", definition: "Standard text like descriptions or short paragraphs. It needs to be clearly legible but isn't as demanding as body text." },
+    large:   { lc: 45, label: "Large / Headlines",  note: "Recommended Lc 45+ for large or bold text", definition: "Text over 24px (or 18px bold). Because the letters are physically larger, they remain readable at lower contrast levels." },
+    spot:    { lc: 30, label: "Spot / Placeholder", note: "Recommended Lc 30+ for spot-readable text", definition: "Non-essential text like copyright lines, search placeholders, or disabled fields. Not intended for reading more than a few words." },
+    ui:      { lc: 30, label: "UI Component",       note: "Recommended Lc 30+ for icons and UI elements", definition: "Interface elements like buttons or icons. Needs enough contrast to be identifiable as an interactive object." },
+    nontext: { lc: 15, label: "Non-text Element",   note: "Recommended Lc 15+ for dividers and borders", definition: "Decorative elements like thin borders or dividers that help organize the layout without being essential to read." },
   };
 
   function autoDetectElementType(sizePx, weightNum) {
@@ -1572,9 +1571,19 @@ const typeSpan = document.createElement("span");
       }
       const meetsAdvisory = lcNow >= advisory.lc;
       advisoryEl.className = `sg-apca-advisory ${meetsAdvisory ? "sg-apca-advisory--pass" : "sg-apca-advisory--fail"}`;
-      advisoryEl.textContent = meetsAdvisory
-        ? `✓ Meets advisory for ${advisory.label}: Lc ${advisory.lc}+`
-        : `Advisory for ${advisory.label}: ${advisory.note} (currently Lc ${lcNow.toFixed(1)})`;
+
+      advisoryEl.innerHTML = `
+        <div class="sg-advisory-status">
+          ${meetsAdvisory ? '✓' : '⚠️'} ${meetsAdvisory ? 'Meets' : 'Below'} advisory for ${advisory.label}: Lc ${advisory.lc}+
+        </div>
+        <div class="sg-advisory-note">
+          ${advisory.note} (Current: Lc ${lcNow.toFixed(1)})
+        </div>
+        <div class="sg-advisory-definition">
+          <strong class="sg-definition-label">What is ${advisory.label}?</strong>
+          ${advisory.definition}
+        </div>
+      `;
       // ── Color row ────────────────────────────────────────
       const colorDetectedEl = document.getElementById(`${side}-apca-color-detected`);
       const colorNeededEl   = document.getElementById(`${side}-apca-color-needed`);

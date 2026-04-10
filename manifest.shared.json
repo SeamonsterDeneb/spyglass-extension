@@ -1,6 +1,6 @@
 {
   "name": "Spyglass",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "A tool for checking and fixing color contrast on web pages",
   "homepage_url": "https://seamonsterstudios.com/accessibility/spyglass-contrast-checker/",
   "permissions": ["activeTab", "scripting"],
