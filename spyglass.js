@@ -323,7 +323,7 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
   }
 
   // ─── CONSTANTS & SHARED STATE ─────────────────────────────
-  const version = "2.1";
+  const version = "2.2";
 
   // Shared state — both panels read/write these
   let sharedFgHex = "#000000";
@@ -576,7 +576,10 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
           <img src="SPYGLASS_ICON_URL_PLACEHOLDER" alt="" class="sg-drag-handle__icon">
           Spyglass Contrast Checker (v${version})
         </h3>
-        <button id="close-checker-btn" aria-label="Close" class="sg-drag-handle__close">✕</button>
+        <div style="display: flex; gap: 8px; align-items: center; margin-left: auto;">
+          <button id="save-analysis-btn" class="sg-save-btn" title="Save Analysis">💾 Save</button>
+          <button id="close-checker-btn" aria-label="Close" class="sg-drag-handle__close">✕</button>
+        </div>
       </div>
       <div class="sg-drag-handle__modes">
         <span class="spyglass-algo-label">Mode:</span>
@@ -865,6 +868,61 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
     return Math.abs(APCAcontrast(fgY, bgY));
   }
 
+  // ─── SAVE ANALYSIS DATA ───────────────────────────────────
+  function saveAnalysis() {
+    const baseWhite = {r:255,g:255,b:255,a:1};
+    const fgRgba = hexToRgba(sharedFgHex);
+    const bgRgba = hexToRgba(sharedBgHex);
+    const effBg = blendRgb(bgRgba, baseWhite);
+    const effFg = blendRgb(fgRgba, effBg);
+
+    const wcagContrast = getContrast(effFg, effBg);
+    const apcaContrast = getAPCAContrast(effFg, effBg);
+
+    const analysis = {
+      timestamp: new Date().toISOString(),
+      url: window.location.href,
+      pageTitle: document.title,
+      colors: {
+        foreground: sharedFgHex,
+        background: sharedBgHex,
+        effectiveForeground: rgbToHex(effFg.r, effFg.g, effFg.b),
+        effectiveBackground: rgbToHex(effBg.r, effBg.g, effBg.b)
+      },
+      element: currentElement ? {
+        tagName: currentElement.tagName,
+        classes: Array.from(currentElement.classList),
+        fontSize: window.getComputedStyle(currentElement).fontSize,
+        fontWeight: window.getComputedStyle(currentElement).fontWeight,
+        textContext: currentElement.innerText.substring(0, 100) + (currentElement.innerText.length > 100 ? "..." : "")
+      } : "No element selected",
+      results: {
+        wcag: {
+          ratio: wcagContrast.toFixed(2),
+          aaNormal: wcagContrast >= 4.5 ? "Pass" : "Fail",
+          aaLarge: wcagContrast >= 3.0 ? "Pass" : "Fail",
+          aaaNormal: wcagContrast >= 7.0 ? "Pass" : "Fail",
+          aaaLarge: wcagContrast >= 4.5 ? "Pass" : "Fail"
+        },
+        apca: {
+          lc: apcaContrast.toFixed(1),
+          status: document.getElementById("apca-status")?.textContent || "N/A"
+        }
+      }
+    };
+
+    const blob = new Blob([JSON.stringify(analysis, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const safeTitle = document.title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    a.href = url;
+    a.download = `spyglass-analysis-${safeTitle}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
   function rgbaToHsl(rgba) {
     const r=rgba.r/255, g=rgba.g/255, b=rgba.b/255;
     const max=Math.max(r,g,b), min=Math.min(r,g,b);
@@ -908,6 +966,42 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
       el = el.parentElement;
     }
     return "rgba(255,255,255,1)";
+  }
+
+  function getFlattenedBackgroundColor(element) {
+    let el = element;
+    let currentColor = { r: 255, g: 255, b: 255, a: 1 }; // Default fallback (White)
+    const layers = [];
+
+    // 1. Collect all layers that have a color
+    while (el) {
+      const style = window.getComputedStyle(el);
+      const bg = style.backgroundColor;
+      if (bg && bg !== "rgba(0, 0, 0, 0)" && bg !== "transparent") {
+        layers.push(bg);
+      }
+      if (el.tagName === "BODY" || el.tagName === "HTML") break;
+      el = el.parentElement;
+    }
+
+    // 2. Blend the layers from top to bottom
+    // We start with white and blend layers on top of it in reverse order
+    let finalRgba = { r: 255, g: 255, b: 255, a: 1 }; 
+    
+    [...layers].reverse().forEach(rgbaString => {
+      const parts = rgbaString.match(/[\d.]+/g);
+      if (parts) {
+        const layerRgba = {
+          r: parseInt(parts[0]),
+          g: parseInt(parts[1]),
+          b: parseInt(parts[2]),
+          a: parts[3] !== undefined ? parseFloat(parts[3]) : 1
+        };
+        finalRgba = blendRgb(layerRgba, finalRgba);
+      }
+    });
+
+    return `rgba(${finalRgba.r}, ${finalRgba.g}, ${finalRgba.b}, 1)`;
   }
 
   function generatePreviewGradient(pixelResult) {
@@ -1993,7 +2087,8 @@ const typeSpan = document.createElement("span");
       panelState[side].hasSelectedElement   = true;
     });
 
-    const elementBgColor = getElementBackgroundColor(target);
+    // Use the new flattened logic to detect the "apparent" background color
+    const elementBgColor = getFlattenedBackgroundColor(target);
     sharedFgHex = rgbaStringToHex(fgColor);
     sharedBgHex = rgbaStringToHex(elementBgColor);
     currentElement = target;
@@ -2232,7 +2327,7 @@ const typeSpan = document.createElement("span");
     if (pixelAnalyzer) pixelAnalyzer.cleanup();
     container.remove();
   });
-
+  document.getElementById("save-analysis-btn")?.addEventListener("click", saveAnalysis);
   // ─── DRAG HANDLE ──────────────────────────────────────────
   const dragHandle = document.getElementById("drag-handle");
   let isDragging = false, dragOffsetX, dragOffsetY;
