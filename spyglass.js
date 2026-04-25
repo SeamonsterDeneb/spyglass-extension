@@ -1,5 +1,5 @@
 // ============================================================
-// SPYGLASS CONTRAST CHECKER — v2.1.1
+// SPYGLASS CONTRAST CHECKER — v2.2
 // ============================================================
 import { minSizeForLc, fontMatrixWeightKeys } from "./apca-lookup.js";
 import { APCAcontrast, sRGBtoY } from "apca-w3";
@@ -533,11 +533,6 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
                         <td class="apca-td" id="${S}-apca-color-needed">-</td>
                         <td class="apca-td apca-rec sg-rec-cell" id="${S}-apca-color-rec">—</td>
                       </tr>
-                      <tr>
-                        <td class="apca-td apca-label">Balanced</td>
-                        <td class="apca-td apca-state-na" colspan="2" style="font-size: 11px; color: #9CA3AF; text-align: center;">Size + Weight Combo</td>
-                        <td class="apca-td apca-rec sg-rec-cell" id="${S}-apca-balanced-rec">—</td>
-                      </tr>
                     </tbody>
                   </table>
                 </div>
@@ -876,58 +871,55 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
 
   // ─── SAVE ANALYSIS DATA ───────────────────────────────────
   function saveAnalysis() {
-      const baseWhite = {r:255,g:255,b:255,a:1};
-      const fgRgba = hexToRgba(sharedFgHex);
-      const bgRgba = hexToRgba(sharedBgHex);
-      const effBg = blendRgb(bgRgba, baseWhite);
-      const effFg = blendRgb(fgRgba, effBg);
+    // Helper to grab text from the "apca" side table cells
+    const getApcaText = (id) => document.getElementById(`apca-apca-${id}`)?.textContent?.trim() || "N/A";
+    
+    // Helper specifically for the Color Rec cell (to handle the Hex Pill text)
+    const getColorRec = () => {
+      const pill = document.querySelector("#apca-apca-color-rec .sg-hex-pill span:last-child");
+      return pill ? pill.textContent : getApcaText("color-rec");
+    };
 
-      const wcagContrast = getContrast(effFg, effBg);
-      const apcaContrast = getAPCAContrast(effFg, effBg);
-      
-      // Helper to grab text from the "apca" side table cells
-      const getApcaText = (id) => document.getElementById(`apca-apca-${id}`)?.textContent?.trim() || "N/A";
-      
-      // Helper specifically for the Color Rec cell (to handle the Hex Pill text)
-      const getColorRec = () => {
-        const pill = document.querySelector("#apca-apca-color-rec .sg-hex-pill span:last-child");
-        return pill ? pill.textContent : getApcaText("color-rec");
-      };
+    // Get individual recs to build the balanced string
+    const sRec = getApcaText("rec-size");
+    const wRec = getApcaText("rec-weight");
+    
+    // Logic: If both pass, just show a checkmark. Otherwise, combine them.
+    const balancedString = (sRec === "✓" && wRec === "✓") ? "✓" : `${sRec} / ${wRec}`;
 
-      const analysis = {
-        timestamp: new Date().toLocaleString(),
-        url: window.location.href,
-        pageTitle: document.title,
-        colors: { foreground: sharedFgHex, background: sharedBgHex },
-        results: {
-          wcag: wcagContrast.toFixed(2),
-          apcaLc: apcaContrast.toFixed(1),
-          // These pull from your "Strong Logic" table
-          recommendations: {
-            sizeMod: getApcaText("rec-size"),
-            weightMod: getApcaText("rec-weight"),
-            colorMod: getColorRec(),
-            balanced: getApcaText("balanced-rec")
-          }
+    const analysis = {
+      timestamp: new Date().toLocaleString(),
+      url: window.location.href,
+      pageTitle: document.title,
+      colors: { foreground: sharedFgHex, background: sharedBgHex },
+      results: {
+        wcag: getRefs("wcag").contrastRatioDisplay.textContent,
+        apcaLc: getRefs("apca").contrastRatioDisplay.textContent.replace('Lc ', ''),
+        recommendations: {
+          sizeMod: sRec,
+          weightMod: wRec,
+          colorMod: getColorRec(),
+          balanced: balancedString // Combined from the two recommendation cells
         }
-      };
+      }
+    };
 
-      chrome.storage.local.get({ spyglass_history: [] }, (data) => {
-        const history = data.spyglass_history;
-        history.push(analysis);
-        chrome.storage.local.set({ spyglass_history: history }, () => {
-          const btn = document.getElementById("save-analysis-btn");
-          if (btn) {
-            const originalText = btn.innerHTML;
-            btn.textContent = "✅ Saved";
-            btn.style.backgroundColor = "#D1FAE5";
-            setTimeout(() => { 
-              btn.innerHTML = originalText; 
-              btn.style.backgroundColor = "";
-            }, 1500);
-          }
-        });
+    chrome.storage.local.get({ spyglass_history: [] }, (data) => {
+      const history = data.spyglass_history;
+      history.push(analysis);
+      chrome.storage.local.set({ spyglass_history: history }, () => {
+        const btn = document.getElementById("save-analysis-btn");
+        if (btn) {
+          const oldText = btn.textContent;
+          btn.textContent = "✅ Saved";
+          btn.style.background = "#dcfce7";
+          setTimeout(() => { 
+            btn.textContent = oldText; 
+            btn.style.background = ""; 
+          }, 1500);
+        }
       });
+    });
   }
 
   function rgbaToHsl(rgba) {
