@@ -1,5 +1,5 @@
 // ============================================================
-// SPYGLASS CONTRAST CHECKER — v2.1
+// SPYGLASS CONTRAST CHECKER — v2.1.1
 // ============================================================
 import { minSizeForLc, fontMatrixWeightKeys } from "./apca-lookup.js";
 import { APCAcontrast, sRGBtoY } from "apca-w3";
@@ -533,6 +533,11 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
                         <td class="apca-td" id="${S}-apca-color-needed">-</td>
                         <td class="apca-td apca-rec sg-rec-cell" id="${S}-apca-color-rec">—</td>
                       </tr>
+                      <tr>
+                        <td class="apca-td apca-label">Balanced</td>
+                        <td class="apca-td apca-state-na" colspan="2" style="font-size: 11px; color: #9CA3AF; text-align: center;">Size + Weight Combo</td>
+                        <td class="apca-td apca-rec sg-rec-cell" id="${S}-apca-balanced-rec">—</td>
+                      </tr>
                     </tbody>
                   </table>
                 </div>
@@ -577,9 +582,10 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
           Spyglass Contrast Checker (v${version})
         </h3>
         <div style="display: flex; gap: 8px; align-items: center; margin-left: auto;">
-          <button id="save-analysis-btn" class="sg-save-btn" title="Save Analysis">💾 Save</button>
-          <button id="close-checker-btn" aria-label="Close" class="sg-drag-handle__close">✕</button>
-        </div>
+                <button id="save-analysis-btn" class="sg-save-btn">💾 Save</button>
+                <button id="download-csv-btn" class="sg-save-btn">📊 CSV</button>
+                <button id="close-checker-btn" class="sg-drag-handle__close">✕</button>
+            </div>
       </div>
       <div class="sg-drag-handle__modes">
         <span class="spyglass-algo-label">Mode:</span>
@@ -870,57 +876,58 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
 
   // ─── SAVE ANALYSIS DATA ───────────────────────────────────
   function saveAnalysis() {
-    const baseWhite = {r:255,g:255,b:255,a:1};
-    const fgRgba = hexToRgba(sharedFgHex);
-    const bgRgba = hexToRgba(sharedBgHex);
-    const effBg = blendRgb(bgRgba, baseWhite);
-    const effFg = blendRgb(fgRgba, effBg);
+      const baseWhite = {r:255,g:255,b:255,a:1};
+      const fgRgba = hexToRgba(sharedFgHex);
+      const bgRgba = hexToRgba(sharedBgHex);
+      const effBg = blendRgb(bgRgba, baseWhite);
+      const effFg = blendRgb(fgRgba, effBg);
 
-    const wcagContrast = getContrast(effFg, effBg);
-    const apcaContrast = getAPCAContrast(effFg, effBg);
+      const wcagContrast = getContrast(effFg, effBg);
+      const apcaContrast = getAPCAContrast(effFg, effBg);
+      
+      // Helper to grab text from the "apca" side table cells
+      const getApcaText = (id) => document.getElementById(`apca-apca-${id}`)?.textContent?.trim() || "N/A";
+      
+      // Helper specifically for the Color Rec cell (to handle the Hex Pill text)
+      const getColorRec = () => {
+        const pill = document.querySelector("#apca-apca-color-rec .sg-hex-pill span:last-child");
+        return pill ? pill.textContent : getApcaText("color-rec");
+      };
 
-    const analysis = {
-      timestamp: new Date().toISOString(),
-      url: window.location.href,
-      pageTitle: document.title,
-      colors: {
-        foreground: sharedFgHex,
-        background: sharedBgHex,
-        effectiveForeground: rgbToHex(effFg.r, effFg.g, effFg.b),
-        effectiveBackground: rgbToHex(effBg.r, effBg.g, effBg.b)
-      },
-      element: currentElement ? {
-        tagName: currentElement.tagName,
-        classes: Array.from(currentElement.classList),
-        fontSize: window.getComputedStyle(currentElement).fontSize,
-        fontWeight: window.getComputedStyle(currentElement).fontWeight,
-        textContext: currentElement.innerText.substring(0, 100) + (currentElement.innerText.length > 100 ? "..." : "")
-      } : "No element selected",
-      results: {
-        wcag: {
-          ratio: wcagContrast.toFixed(2),
-          aaNormal: wcagContrast >= 4.5 ? "Pass" : "Fail",
-          aaLarge: wcagContrast >= 3.0 ? "Pass" : "Fail",
-          aaaNormal: wcagContrast >= 7.0 ? "Pass" : "Fail",
-          aaaLarge: wcagContrast >= 4.5 ? "Pass" : "Fail"
-        },
-        apca: {
-          lc: apcaContrast.toFixed(1),
-          status: document.getElementById("apca-status")?.textContent || "N/A"
+      const analysis = {
+        timestamp: new Date().toLocaleString(),
+        url: window.location.href,
+        pageTitle: document.title,
+        colors: { foreground: sharedFgHex, background: sharedBgHex },
+        results: {
+          wcag: wcagContrast.toFixed(2),
+          apcaLc: apcaContrast.toFixed(1),
+          // These pull from your "Strong Logic" table
+          recommendations: {
+            sizeMod: getApcaText("rec-size"),
+            weightMod: getApcaText("rec-weight"),
+            colorMod: getColorRec(),
+            balanced: getApcaText("balanced-rec")
+          }
         }
-      }
-    };
+      };
 
-    const blob = new Blob([JSON.stringify(analysis, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    const safeTitle = document.title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-    a.href = url;
-    a.download = `spyglass-analysis-${safeTitle}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+      chrome.storage.local.get({ spyglass_history: [] }, (data) => {
+        const history = data.spyglass_history;
+        history.push(analysis);
+        chrome.storage.local.set({ spyglass_history: history }, () => {
+          const btn = document.getElementById("save-analysis-btn");
+          if (btn) {
+            const originalText = btn.innerHTML;
+            btn.textContent = "✅ Saved";
+            btn.style.backgroundColor = "#D1FAE5";
+            setTimeout(() => { 
+              btn.innerHTML = originalText; 
+              btn.style.backgroundColor = "";
+            }, 1500);
+          }
+        });
+      });
   }
 
   function rgbaToHsl(rgba) {
@@ -2328,6 +2335,46 @@ const typeSpan = document.createElement("span");
     container.remove();
   });
   document.getElementById("save-analysis-btn")?.addEventListener("click", saveAnalysis);
+  document.getElementById("download-csv-btn")?.addEventListener("click", () => {
+    chrome.storage.local.get({ spyglass_history: [] }, (data) => {
+      const history = data.spyglass_history;
+      if (history.length === 0) {
+        alert("No saved analyses found.");
+        return;
+      }
+
+      const headers = [
+        "Timestamp", "URL", "Page", "FG", "BG", "WCAG Ratio", 
+        "APCA Lc", "Size Mod", "Weight Mod", "Color Mod", "Balanced Combo"
+      ];
+
+      const rows = history.map(s => [
+        s.timestamp,
+        s.url,
+        s.pageTitle,
+        s.colors.foreground,
+        s.colors.background,
+        s.results.wcag,
+        s.results.apcaLc,
+        s.results.recommendations.sizeMod,
+        s.results.recommendations.weightMod,
+        s.results.recommendations.colorMod,
+        s.results.recommendations.balanced
+      ]);
+
+      const csvContent = [headers, ...rows]
+        .map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(","))
+        .join("\n");
+
+      const blob = new Blob([csvContent], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `spyglass-master-report.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+  });
   // ─── DRAG HANDLE ──────────────────────────────────────────
   const dragHandle = document.getElementById("drag-handle");
   let isDragging = false, dragOffsetX, dragOffsetY;
@@ -2348,18 +2395,62 @@ const typeSpan = document.createElement("span");
     document.body.style.userSelect = "";
   });
 
-  // ─── WIRE BOTH SIDES ──────────────────────────────────────
+ // ─── FINAL INITIALIZATION ────────────────────────────────
+
+  // 1. Wire internal panel events
   wireSide("wcag");
   wireSide("apca");
 
-  // ─── INITIAL RENDER ───────────────────────────────────────
-  applyAlgoMode();   // sets correct panel visibility for the default "wcag" radio
+  // 2. Wire Global Buttons (Save & CSV)
+  document.getElementById("save-analysis-btn")?.addEventListener("click", saveAnalysis);
+  
+  document.getElementById("download-csv-btn")?.addEventListener("click", () => {
+    chrome.storage.local.get({ spyglass_history: [] }, (data) => {
+      const history = data.spyglass_history;
+      if (!history || history.length === 0) {
+        alert("History is empty. Save some results first!");
+        return;
+      }
+
+      const headers = [
+        "Timestamp", "URL", "Page", "FG", "BG", "WCAG Ratio", 
+        "APCA Lc", "Size Mod", "Weight Mod", "Color Mod", "Balanced Combo"
+      ];
+
+      const rows = history.map(s => [
+        s.timestamp, s.url, s.pageTitle, s.colors.foreground, s.colors.background,
+        s.results.wcag, s.results.apcaLc,
+        s.results.recommendations.sizeMod, s.results.recommendations.weightMod,
+        s.results.recommendations.colorMod, s.results.recommendations.balanced
+      ]);
+
+      const csvContent = [headers, ...rows]
+        .map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(","))
+        .join("\n");
+
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "spyglass-master-report.csv";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    });
+  });
+
+  // 3. Wire the Close button
+  document.getElementById("close-checker-btn")?.addEventListener("click", () => {
+    stopAllPickers();
+    if (pixelAnalyzer) pixelAnalyzer.cleanup();
+    container.remove();
+  });
+
+  // 4. Set initial UI state
+  applyAlgoMode();
   renderAll();
 
-  // Auto-open the picker after a short delay, same as v1.7
+  // 5. Auto-start picker (Exactly once)
   setTimeout(() => startElementPicking("wcag", false), 100);
 
-// ============================================================
-// END OF CHUNK 3 — close the IIFE
-// ============================================================
-})();
+})(); // Final IIFE Closure
