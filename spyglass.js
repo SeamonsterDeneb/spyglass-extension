@@ -2395,28 +2395,26 @@ const typeSpan = document.createElement("span");
     document.body.style.userSelect = "";
   });
 
- // ─── FINAL INITIALIZATION ────────────────────────────────
+ // ─── FINAL WIRING & INITIALIZATION ───────────────────────
 
-  // 1. Wire internal panel events
+  // 1. Wire the internal panel logic (buttons inside the WCAG/APCA columns)
   wireSide("wcag");
   wireSide("apca");
 
-  // 2. Wire Global Buttons (Save & CSV)
-  document.getElementById("save-analysis-btn")?.addEventListener("click", saveAnalysis);
-  
+  // 2. Wire Global UI Buttons (Save & CSV in the top handle)
+  document.getElementById("save-analysis-btn")?.addEventListener("click", () => {
+    saveAnalysis(); 
+  });
+
   document.getElementById("download-csv-btn")?.addEventListener("click", () => {
     chrome.storage.local.get({ spyglass_history: [] }, (data) => {
       const history = data.spyglass_history;
-      if (!history || history.length === 0) {
+      if (history.length === 0) {
         alert("History is empty. Save some results first!");
         return;
       }
 
-      const headers = [
-        "Timestamp", "URL", "Page", "FG", "BG", "WCAG Ratio", 
-        "APCA Lc", "Size Mod", "Weight Mod", "Color Mod", "Balanced Combo"
-      ];
-
+      const headers = ["Timestamp", "URL", "Page", "FG", "BG", "WCAG Ratio", "APCA Lc", "Size Mod", "Weight Mod", "Color Mod", "Balanced Combo"];
       const rows = history.map(s => [
         s.timestamp, s.url, s.pageTitle, s.colors.foreground, s.colors.background,
         s.results.wcag, s.results.apcaLc,
@@ -2424,33 +2422,23 @@ const typeSpan = document.createElement("span");
         s.results.recommendations.colorMod, s.results.recommendations.balanced
       ]);
 
-      const csvContent = [headers, ...rows]
-        .map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(","))
-        .join("\n");
-
+      const csvContent = [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
       const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
-      link.href = url;
-      link.download = "spyglass-master-report.csv";
+      link.setAttribute("href", url);
+      link.setAttribute("download", "spyglass_report.csv");
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
     });
   });
 
-  // 3. Wire the Close button
-  document.getElementById("close-checker-btn")?.addEventListener("click", () => {
-    stopAllPickers();
-    if (pixelAnalyzer) pixelAnalyzer.cleanup();
-    container.remove();
-  });
-
-  // 4. Set initial UI state
-  applyAlgoMode();
+  // 3. Set the initial state and perform first render
+  applyAlgoMode(); 
   renderAll();
 
-  // 5. Auto-start picker (Exactly once)
+  // 4. Auto-open the picker (only once!)
   setTimeout(() => startElementPicking("wcag", false), 100);
 
-})(); // Final IIFE Closure
+})(); // Final closure of the IIFE
