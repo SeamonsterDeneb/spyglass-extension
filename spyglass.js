@@ -2403,10 +2403,12 @@ const typeSpan = document.createElement("span");
 
   // 2. Wire Global UI Buttons (Save & CSV in the top handle)
   document.getElementById("save-analysis-btn")?.addEventListener("click", () => {
+    e.stopImmediatePropagation();
     saveAnalysis(); 
   });
 
   document.getElementById("download-csv-btn")?.addEventListener("click", () => {
+    e.stopImmediatePropagation();
     chrome.storage.local.get({ spyglass_history: [] }, (data) => {
       const history = data.spyglass_history;
       if (history.length === 0) {
