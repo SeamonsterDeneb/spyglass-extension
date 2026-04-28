@@ -1,6 +1,6 @@
 /* 
 * Spyglass Extension
-* Version 2.2
+* Version 2.3.9.9
 */
 /* Set the base font size to 16px to anchor all internal EM units */
 #contrast-checker-container {
@@ -14,9 +14,9 @@
     /* Fixed pixel widths for the outer "window" to ignore host site scaling */
     width: 432px; 
     
-    background-color: white;
+    background-color: lightgreen;
     border-radius: 8px;
-    border: 1px solid #E5E7EB;
+    border: 1px solid lightseagreen;
     box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
     position: fixed;
     top: 20px;
@@ -266,35 +266,35 @@ body.element-picking-cursor * {
 
 #contrast-checker-container .apca-table th,
 #contrast-checker-container .apca-table td {
-    border: 1px solid #F3F4F6 !important;
-    vertical-align: middle !important;
-    line-height: 1.4 !important;
-    background-color: #fff !important;
+    border: 1px solid #F3F4F6;
+    vertical-align: middle;
+    line-height: 1.4;
+    background-color: #fff;
 }
 
 #contrast-checker-container .apca-table thead th {
-    border-bottom: 2px solid #E5E7EB !important;
+    border-bottom: 2px solid #E5E7EB;
 }
 
 #contrast-checker-container .apca-th {
-    text-align: center !important;
+    text-align: center;
     font-weight: 600;
-    padding: 2.4px 3.2px 3.2px !important;
+    padding: 2.4px 3.2px 3.2px;
 }
 
 #contrast-checker-container .apca-th-left {
-    text-align: left !important;
-    padding-left: 0 !important;
+    text-align: left;
+    padding-left: 0;
 }
 
 #contrast-checker-container .apca-td {
-    text-align: center !important;
-    padding: 4px 3.2px !important;
+    text-align: center;
+    padding: 4px 3.2px;
 }
 
 #contrast-checker-container .apca-label {
-    text-align: left !important;
-    padding-left: 0 !important;
+    text-align: left;
+    padding-left: 0;
     color: #6B7280;
     white-space: nowrap;
     font-size: clamp(12px, 0.78em, 1em);
@@ -307,19 +307,20 @@ body.element-picking-cursor * {
 }
 
 #contrast-checker-container .apca-state-pass {
-    color: #047e58 !important;
+    color: #047e58;
 }
 
 #contrast-checker-container .apca-state-suggest {
-    color: #92400E !important;
+    color: #92400E;
 }
 
 #contrast-checker-container .apca-state-na {
-    color: #9CA3AF !important;
+    color: #9CA3AF;
 }
 
 #contrast-checker-container .apca-rec-active {
-    color: #1D4ED8 !important;
+    background: #DCFCE7;
+    color: #1D4ED8;
     font-weight: 700;
 }
 
@@ -332,7 +333,7 @@ body.element-picking-cursor * {
 }
 
 #contrast-checker-container .sg-rec-cell {
-    background-color: #F0FDF4 !important;
+    background-color: #F0FDF4;
 }
 
 #contrast-checker-container .sg-hex-pill {
@@ -1090,4 +1091,82 @@ body.element-picking-cursor * {
     opacity: 0.6;
     display: block;
     margin-bottom: 2px;
+}
+
+/* Highlight the Recommendation column as a cohesive vertical group */
+#contrast-checker-container #apca-apca-table .sg-rec-cell {
+    background-color: #F0FDF4;  /* Soft green background */
+    border-left: 2px solid #059669; /* Emerald green left border */
+    border-right: 2px solid #059669; /* Emerald green right border */
+    position: relative;
+}
+
+/* Add top and bottom borders to the first and last cells in the column to complete the outline */
+#contrast-checker-container .apca-table tbody tr:first-child .sg-rec-cell {
+    border-top: 2px solid #059669;
+}
+
+#contrast-checker-container .apca-table tbody tr:last-child .sg-rec-cell {
+    border-bottom: 2px solid #059669;
+}
+
+/* Style the header for the Recommendation column to match */
+#contrast-checker-container .apca-table thead th:last-child {
+    background-color: #DCFCE7;
+    border-left: 2px solid #059669;
+    border-right: 2px solid #059669;
+    border-top: 2px solid #059669;
+    color: #065F46;
+}
+
+/* Ensure Proposed column (the middle one) looks distinct and "one-off" */
+#contrast-checker-container .apca-needed {
+    background-color: #FFFBEB; /* Very soft amber background */
+    color: #92400E;
+    font-style: italic;
+    font-size: 14px;
+}
+
+/* Highlight the Recommendation column as a cohesive vertical group */
+#contrast-checker-container #apca-apca-table .sg-rec-cell {
+    border-left: 2px solid #059669; /* Emerald green left border */
+    border-right: 2px solid #059669; /* Emerald green right border */
+    position: relative;
+}
+
+/* Add top and bottom borders to the first and last cells in the column to complete the outline */
+#contrast-checker-container .apca-table tbody tr:first-child .sg-rec-cell {
+    border-top: 2px solid #059669;
+}
+
+#contrast-checker-container .apca-table tbody tr:last-child .sg-rec-cell {
+    border-bottom: 2px solid #059669;
+}
+
+/* Style the header for the Recommendation column to match the column theme */
+#contrast-checker-container .apca-table thead th:last-child {
+    border-top: 2px solid #059669;
+}
+
+#contrast-checker-container #apca-apca-table .apca-rec-active {
+    background-color: #DCFCE7;
+    border-left: 2px solid #059669;
+    border-right: 2px solid #059669;
+    color: #065F46;
+}
+
+
+
+/* Ensure Proposed column (the middle one) looks distinct and secondary */
+#contrast-checker-container #apca-apca-table .apca-needed {
+    background-color: #FFFBEB; /* Very soft amber background */
+    color: #92400E;
+    font-style: italic;
+    font-size: 14px;
+}
+
+#contrast-checker-container #apca-apca-table .apca-rec-cell,
+#contrast-checker-container #apca-apca-table .sg-rec-cell
+ {
+    background: #DCFCE7;
 }
