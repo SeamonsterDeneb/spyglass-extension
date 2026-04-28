@@ -1,13 +1,13 @@
 // ============================================================
-// SPYGLASS CONTRAST CHECKER — v2.3.9.9
+// SPYGLASS CONTRAST CHECKER — v2.4.11
 // ============================================================
-import { minSizeForLc, fontMatrixWeightKeys } from "./apca-lookup.js";
+import { minSizeForLc, minLcForSize, fontMatrixWeightKeys, fontMatrixLcKeys } from "./apca-lookup.js";
 import { APCAcontrast, sRGBtoY } from "apca-w3";
 (function () {
   if (document.getElementById("contrast-checker-container")) return;
 
   // ─── CONSTANTS & SHARED STATE ─────────────────────────────
-  const version = "2.3.9.9";
+  const version = "2.4.11";
   // ─── IMAGE BACKGROUND ANALYZER ───────────────────────────
   class ImageBackgroundAnalyzer {
     constructor() {
@@ -697,23 +697,16 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
     }
   }
 
-  // ─── SAVE ANALYSIS DATA ───────────────────────────────────
   function saveAnalysis() {
-    // Helper to grab text from the "apca" side table cells
     const getApcaText = (id) => document.getElementById(`apca-apca-${id}`)?.textContent?.trim() || "N/A";
-    
-    // Helper specifically for the Color Rec cell (to handle the Hex Pill text)
     const getColorRec = () => {
       const pill = document.querySelector("#apca-apca-color-rec .sg-hex-pill span:last-child");
       return pill ? pill.textContent : getApcaText("color-rec");
     };
 
-    // Get individual recs to build the balanced string
     const sRec = getApcaText("rec-size");
     const wRec = getApcaText("rec-weight");
     const cRec = getColorRec();
-    
-    // Logic: If all pass, show ✓. Otherwise, combine Size / Weight / Color.
     const balancedString = (sRec === "✓" && wRec === "✓" && cRec === "✓") ? "✓" : `${sRec} / ${wRec} / ${cRec}`;
 
     const analysis = {
@@ -725,17 +718,9 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
         wcag: getRefs("wcag").contrastRatioDisplay.textContent,
         apcaLc: getRefs("apca").contrastRatioDisplay.textContent.replace('Lc ', ''),
         detected: {
-          size: getApcaText("font-size"),
-          weight: getApcaText("font-weight"),
-          color: sharedFgHex,
-          combo: `${getApcaText("font-size")} / ${getApcaText("font-weight")} / ${sharedFgHex}`
+          combo: `${getApcaText("font-size")} / ${getApcaText("font-weight")} / ${sharedFgHex.toUpperCase()}`
         },
-        recommendations: {
-          sizeMod: sRec,
-          weightMod: wRec,
-          colorMod: getColorRec(),
-          balanced: balancedString
-        }
+        recommendations: { sizeMod: sRec, weightMod: wRec, colorMod: cRec, balanced: balancedString }
       }
     };
 
@@ -747,11 +732,7 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
         if (btn) {
           const oldText = btn.textContent;
           btn.textContent = "✅ Saved";
-          btn.style.background = "#dcfce7";
-          setTimeout(() => { 
-            btn.textContent = oldText; 
-            btn.style.background = ""; 
-          }, 1500);
+          setTimeout(() => { btn.textContent = oldText; }, 1500);
         }
       });
     });
@@ -867,17 +848,7 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
 
   // ─── APCA LOOKUP TABLE ────────────────────────────────────
   // Shared by both panel renderers
-  const apcaThresholds = {
-    10:  {400:100,500:100,600:90,700:80,800:80,900:80},
-    12:  {300:100,400:90,500:75,600:70,700:60,800:60,900:60},
-    14:  {300:90,400:75,500:70,600:60,700:55,800:55,900:55},
-    16:  {200:100,300:75,400:70,500:60,600:55,700:50,800:50,900:50},
-    18:  {200:90,300:70,400:65,500:55,600:50,700:45,800:45,900:45},
-    24:  {200:75,300:60,400:60,500:50,600:45,700:40,800:40,900:40},
-    36:  {200:60,300:50,400:50,500:45,600:40,700:35,800:35,900:35},
-    48:  {200:50,300:45,400:45,500:40,600:35,700:30,800:30,900:30},
-    96:  {200:40,300:38,400:38,500:35,600:30,700:25,800:25,900:25},
-  };
+  
   const apcaWeightKeys = [200,300,400,500,600,700,800,900];
 
   // ─── ELEMENT TYPE ADVISORY ────────────────────────────────
@@ -1242,14 +1213,8 @@ const typeSpan = document.createElement("span");
     // Pill pass threshold
     let pillPassThreshold = ps.tweakTargetContrast;
     if (isAPCA) {
-      const sizeInPx = parseFloat(currentFontSize);
-      const weightNum = parseInt(currentFontWeight, 10);
-      const sortedSizes = Object.keys(apcaThresholds).map(Number).sort((a,b)=>a-b);
-      let wk = apcaWeightKeys[0];
-      for (const k of apcaWeightKeys) { if (k<=weightNum) wk=k; else break; }
-      let bucket = sortedSizes[0];
-      for (const s of sortedSizes) { if (sizeInPx>=s) bucket=s; else break; }
-      pillPassThreshold = (apcaThresholds[bucket]&&apcaThresholds[bucket][wk]) || 100;
+      // Use our official lookup function instead of the deleted table
+      pillPassThreshold = minLcForSize(parseFloat(currentFontSize), parseInt(currentFontWeight, 10));
     }
 
     updateMiniRatioPill(R.miniRatioPill, minContrast, maxContrast, isRange, pillPassThreshold, isAPCA);
@@ -1264,111 +1229,30 @@ const typeSpan = document.createElement("span");
       const lcNow = Math.abs(contrast);
       const sizeInPx = parseFloat(currentFontSize);
       const weightNum = parseInt(currentFontWeight, 10);
-      const sortedSizes = Object.keys(apcaThresholds).map(Number).sort((a,b)=>a-b);
+      const sortedSizes = fontMatrixLcKeys.filter(lc => lc > 0);
 
-      function nearestWeightKey(w) {
-        let best=apcaWeightKeys[0];
-        for (const k of apcaWeightKeys) { if(k<=w) best=k; else break; }
-        return best;
-      }
-      function minLcFor(sizePx, weightKey) {
-        // Find the two size rows that bracket sizePx
-        let lowerSize = sortedSizes[0], upperSize = sortedSizes[sortedSizes.length - 1];
-        for (let i = 0; i < sortedSizes.length; i++) {
-          if (sortedSizes[i] <= sizePx) lowerSize = sortedSizes[i];
-          if (sortedSizes[i] >= sizePx && (upperSize === sortedSizes[sortedSizes.length-1] || sortedSizes[i] < upperSize)) {
-            upperSize = sortedSizes[i];
-          }
-        }
-        // Find the upper size correctly
-        upperSize = sortedSizes[sortedSizes.length - 1];
-        for (const s of sortedSizes) { if (s >= sizePx) { upperSize = s; break; } }
-
-        const lowerRow = apcaThresholds[lowerSize];
-        const upperRow = apcaThresholds[upperSize];
-
-        // Find the two weight columns that bracket weightKey
-        const allWeights = apcaWeightKeys;
-        let lowerW = allWeights[0], upperW = allWeights[allWeights.length - 1];
-        for (const w of allWeights) { if (w <= weightKey) lowerW = w; }
-        for (const w of allWeights) { if (w >= weightKey) { upperW = w; break; } }
-
-        // Helper: interpolate along the weight axis for a given size row,
-        // skipping missing entries by finding the nearest valid ones
-        function interpWeight(row, wLo, wHi, wTarget) {
-          if (!row) return null;
-          // Walk outward to find valid weight entries if exact ones are missing
-          let lo = wLo, hi = wHi;
-          while (lo >= allWeights[0] && row[lo] == null) lo -= 100;
-          while (hi <= allWeights[allWeights.length-1] && row[hi] == null) hi += 100;
-          const vLo = row[lo], vHi = row[hi];
-          if (vLo == null && vHi == null) return null;
-          if (vLo == null) return vHi;
-          if (vHi == null) return vLo;
-          if (lo === hi) return vLo;
-          // Linear interpolation along weight axis
-          const t = (wTarget - lo) / (hi - lo);
-          return vLo + t * (vHi - vLo);
-        }
-
-        const lcAtLowerSize = interpWeight(lowerRow, lowerW, upperW, weightKey);
-        const lcAtUpperSize = interpWeight(upperRow, lowerW, upperW, weightKey);
-
-        if (lcAtLowerSize == null && lcAtUpperSize == null) return null;
-        if (lcAtLowerSize == null) return lcAtUpperSize;
-        if (lcAtUpperSize == null) return lcAtLowerSize;
-        if (lowerSize === upperSize) return lcAtLowerSize;
-
-        // Linear interpolation along the size axis
-        const t = (sizePx - lowerSize) / (upperSize - lowerSize);
-        return lcAtLowerSize + t * (lcAtUpperSize - lcAtLowerSize);
-      }
-
-      const lookupWeight = nearestWeightKey(weightNum);
-      const tableThreshold = minLcFor(sizeInPx, lookupWeight) ?? 100;
-      const minLcRequired = tableThreshold;
+      // Get the official required Lc for the current detected size and weight
+      const minLcRequired = minLcForSize(parseFloat(currentFontSize), parseInt(currentFontWeight, 10));
 
       let neededSizeText, neededWeightText;
 
       if (lcNow >= minLcRequired) {
         neededSizeText = "✓ passes";
-      } else {
-        // Walk from the smallest table size upward in 0.5px steps,
-        // using interpolation to find the smallest size where lcNow
-        // meets the interpolated threshold at the detected weight.
-        const minTableSize = sortedSizes[0];
-        const maxTableSize = sortedSizes[sortedSizes.length - 1];
-        let neededSize = null;
-        for (let sz = minTableSize; sz <= maxTableSize; sz += 0.5) {
-          const threshold = minLcFor(sz, lookupWeight);
-          if (threshold != null && lcNow >= threshold) {
-            neededSize = sz;
-            break;
-          }
-        }
-        // Round up to nearest 0.5 and display cleanly
-        const neededSizeLabel = neededSize != null
-          ? `≥ ${neededSize % 1 === 0 ? neededSize : neededSize.toFixed(1)}px`
-          : "N/A";
-        neededSizeText = neededSizeLabel;
-      }
-
-      if (lcNow >= minLcRequired) {
         neededWeightText = "✓ passes";
       } else {
-        // Walk standard weight increments (100-unit steps) using interpolated
-        // size thresholds so the result is consistent with the size interpolation.
-        let lightestPassingWeight = null;
-        for (const wk of apcaWeightKeys) {
-          const threshold = minLcFor(sizeInPx, wk);
-          if (threshold != null && lcNow >= threshold) {
-            lightestPassingWeight = wk;
-            break;
-          }
-        }
-        neededWeightText = lightestPassingWeight != null
-          ? `≥ ${lightestPassingWeight}`
+        // Find the specific size needed at the current weight
+        const neededSize = minSizeForLc(lcNow, parseInt(currentFontWeight, 10));
+        neededSizeText = (neededSize && neededSize < 500) 
+          ? `≥ ${neededSize % 1 === 0 ? neededSize : neededSize.toFixed(1)}px` 
           : "N/A";
+
+        // Find the specific weight needed at the current size
+        let lightestPassingWeight = null;
+        for (const wk of fontMatrixWeightKeys) {
+          const threshold = minLcForSize(parseFloat(currentFontSize), wk);
+          if (lcNow >= threshold) { lightestPassingWeight = wk; break; }
+        }
+        neededWeightText = lightestPassingWeight ? `≥ ${lightestPassingWeight}` : "N/A";
       }
 
       R.apcaFontSize.textContent    = currentFontSize;
@@ -1446,18 +1330,23 @@ const typeSpan = document.createElement("span");
         }
       } else {
         let bestRec = null, bestScore = Infinity;
-        const minTableSize = sortedSizes[0];
-        const maxTableSize = sortedSizes[sortedSizes.length - 1];
-        for (let sz = minTableSize; sz <= maxTableSize; sz += 0.5) {
-          if (sz < sizeInPx) continue;
-          for (const wk of apcaWeightKeys) {
-            if (wk < weightNum) continue;
-            const threshold = minLcFor(sz, wk);
-            if (threshold == null || lcNow < threshold) continue;
-            const sd = (sz - sizeInPx) / sizeInPx;
-            const wd = (wk - weightNum) / Math.max(weightNum, 100);
-            const score = Math.sqrt(sd * sd + wd * wd);
-            if (score < bestScore) { bestScore = score; bestRec = { sz, wk }; }
+        const curSize = parseFloat(currentFontSize);
+        const curWeight = parseInt(currentFontWeight, 10);
+
+        for (const wk of fontMatrixWeightKeys) {
+          if (wk < curWeight) continue;
+          
+          const sz = minSizeForLc(lcNow, wk);
+          if (!sz || sz > 500 || sz < curSize) continue;
+
+          // Score the combo (size change vs weight change)
+          const sizeDiff = (sz - curSize) / curSize;
+          const weightDiff = (wk - curWeight) / 400;
+          const score = Math.sqrt(sizeDiff * sizeDiff + weightDiff * weightDiff);
+          
+          if (score < bestScore) {
+            bestScore = score;
+            bestRec = { sz, wk };
           }
         }
         if (bestRec) {
@@ -1576,7 +1465,7 @@ const typeSpan = document.createElement("span");
           colorRecEl.className = "apca-td apca-rec sg-rec-cell apca-state-pass";
         }
       } else {
-        const neededColorHex = adjustLuminanceAPCA(fgRgba, bgRgba, tableThreshold, true);
+        const neededColorHex = adjustLuminanceAPCA(fgRgba, bgRgba, minLcRequired, true);
         colorNeededEl.textContent = "";
         colorNeededEl.className = "apca-td";
         colorNeededEl.appendChild(makeHexPill(neededColorHex, neededColorHex));
@@ -1598,7 +1487,7 @@ const typeSpan = document.createElement("span");
           if (sz < sizeInPx) continue;
           for (const wk of apcaWeightKeys) {
             if (wk < weightNum) continue;
-            const threshold = minLcFor(sz, wk);
+            const threshold = minLcForSize(sz, wk);
             if (threshold == null || lcNow < threshold) continue;
             const sd = (sz - sizeInPx) / sizeInPx;
             const wd = (wk - weightNum) / Math.max(weightNum, 100);
@@ -1612,9 +1501,7 @@ const typeSpan = document.createElement("span");
 
         if (bestRecForColor) {
           // What Lc does the table require at the recommended size+weight?
-          let recBucket = sortedSizes[0];
-          for (const s of sortedSizes) { if (bestRecForColor.sizePx >= s) recBucket = s; else break; }
-          const recThreshold = (apcaThresholds[recBucket] && apcaThresholds[recBucket][bestRecForColor.wk]) || 75;
+          const recThreshold = minLcForSize(bestRecForColor.sizePx, bestRecForColor.wk) || 75;
           const recTarget = Math.max(recThreshold, lcNow); // only nudge as far as needed
           recColorHex = adjustLuminanceAPCA(fgRgba, bgRgba, recTarget, true);
         }
@@ -1625,12 +1512,12 @@ const typeSpan = document.createElement("span");
       }
 
       // APCA suggestions
-      const apcaSuggestionTarget = tableThreshold;
+      const apcaSuggestionTarget = minLcRequired;
       if (contrast < apcaSuggestionTarget) {
         R.fgSuggestionBox.style.display = "flex";
         R.bgSuggestionBox.style.display = "flex";
-        R.fgSuggestionLabel.textContent = `Lc ${tableThreshold}`;
-        R.bgSuggestionLabel.textContent = `Lc ${tableThreshold}`;
+        R.fgSuggestionLabel.textContent = `Lc ${minLcRequired}`;
+        R.bgSuggestionLabel.textContent = `Lc ${minLcRequired}`;
 
         const fgSugHex = adjustLuminanceAPCA(fgRgba, bgRgba, apcaSuggestionTarget, true);
         const sugFgRgba = hexToRgba(fgSugHex);
