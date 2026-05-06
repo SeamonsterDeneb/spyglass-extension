@@ -1,5 +1,5 @@
 // ============================================================
-// SPYGLASS CONTRAST CHECKER — v2.4.17
+// SPYGLASS CONTRAST CHECKER — v2.4.19
 // ============================================================
 import { minSizeForLc, minLcForSize, fontMatrixWeightKeys, fontMatrixLcKeys } from "./apca-lookup.js";
 import { APCAcontrast, sRGBtoY } from "apca-w3";
@@ -7,7 +7,7 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
   if (document.getElementById("contrast-checker-container")) return;
 
   // ─── CONSTANTS & SHARED STATE ─────────────────────────────
-  const version = "2.4.17";
+  const version = "2.4.19";
   // ─── IMAGE BACKGROUND ANALYZER ───────────────────────────
   class ImageBackgroundAnalyzer {
     constructor() {
@@ -1990,9 +1990,13 @@ const typeSpan = document.createElement("span");
 
         // Step 2: Wait for any keypress as the fresh gesture
         if (pickerStatusEl) pickerStatusEl.textContent = "✓ FG picked! Press any key to pick background...";
+        pickerStatusEl.classList.add("sg-picker-status--pulsing");
+        pickerStatusEl.addEventListener("animationend", () => {
+          pickerStatusEl.classList.remove("sg-picker-status--pulsing");
+        }, { once: true });
 
         await new Promise(resolve => {
-          document.addEventListener("keydown", resolve, { once: true });
+          document.addEventListener("keydown", (e) => { e.preventDefault(); resolve(); }, { once: true });
         });
 
         // Step 3: Pick Background

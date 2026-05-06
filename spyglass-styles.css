@@ -1,5 +1,5 @@
 /* * Spyglass Extension
-* Version 2.4.12
+* Version 2.4.18
 */
 
 /* Set the base font size to 16px to anchor all internal EM units */
@@ -1151,4 +1151,16 @@ body.element-picking-cursor * {
     color: #92400E !important;
     font-style: italic;
     font-size: 0.9em;
+}
+
+@keyframes sg-pulse-attention {
+    0%   { background: transparent; color: #1D4ED8; transform: scale(1); }
+    50%  { background: #DBEAFE; color: #1E3A8A; transform: scale(1.04); }
+    100% { background: transparent; color: #1D4ED8; transform: scale(1); }
+}
+
+#contrast-checker-container .sg-picker-status--pulsing {
+    animation: sg-pulse-attention 0.8s ease-in-out 3;
+    border-radius: 6px;
+    padding: 4px 8px;
 }
