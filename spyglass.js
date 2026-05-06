@@ -1,5 +1,5 @@
 // ============================================================
-// SPYGLASS CONTRAST CHECKER — v2.4.11
+// SPYGLASS CONTRAST CHECKER — v2.4.17
 // ============================================================
 import { minSizeForLc, minLcForSize, fontMatrixWeightKeys, fontMatrixLcKeys } from "./apca-lookup.js";
 import { APCAcontrast, sRGBtoY } from "apca-w3";
@@ -7,7 +7,7 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
   if (document.getElementById("contrast-checker-container")) return;
 
   // ─── CONSTANTS & SHARED STATE ─────────────────────────────
-  const version = "2.4.11";
+  const version = "2.4.17";
   // ─── IMAGE BACKGROUND ANALYZER ───────────────────────────
   class ImageBackgroundAnalyzer {
     constructor() {
@@ -543,17 +543,22 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
 
         <!-- Pickers -->
         <div class="sg-pickers">
-          <div class="sg-pickers__row">
-            <button id="${S}-activate-element-picker-btn" class="sg-pickers__element-btn sg-pickers__element-btn--${S}">
-              Element Picker
-            </button>
-            <button id="${S}-element-picker-mode-toggle" class="sg-pickers__mode-btn sg-pickers__mode-btn--${S}">
-              Resting
+          <button id="${S}-serial-picker-btn" class="sg-pickers__serial-btn sg-pickers__serial-btn--${S}">
+            Serial Picker
+          </button>
+          <div class="sg-pickers__right-column">
+            <div class="sg-pickers__row">
+              <button id="${S}-activate-element-picker-btn" class="sg-pickers__element-btn sg-pickers__element-btn--${S}">
+                Element Picker
+              </button>
+              <button id="${S}-element-picker-mode-toggle" class="sg-pickers__mode-btn sg-pickers__mode-btn--${S}">
+                Resting
+              </button>
+            </div>
+            <button id="${S}-activate-overlay-picker-btn" class="sg-pickers__overlay-btn">
+              Overlay Picker<span class="sg-pickers__overlay-sublabel">(pixel analysis)</span>
             </button>
           </div>
-          <button id="${S}-activate-overlay-picker-btn" class="sg-pickers__overlay-btn">
-            Overlay Picker<span class="sg-pickers__overlay-sublabel">(pixel analysis)</span>
-          </button>
         </div>
 
         <div id="${S}-picker-status" class="sg-picker-status"></div>
@@ -1929,29 +1934,86 @@ const typeSpan = document.createElement("span");
     });
 
     // Color swatches (EyeDropper API)
-    R.fgSwatch.addEventListener("click", async (e) => {
+    const activateNativePicker = async (targetSwatch, targetInput, isForeground) => {
       if (window.EyeDropper) {
-        e.preventDefault();
         const hex = await pickColorNative();
-        if (hex) { sharedFgHex = hex; renderAll(); }
+        if (hex) {
+          if (isForeground) sharedFgHex = hex; else sharedBgHex = hex;
+          renderAll();
+        }
       }
+    };
+
+    R.fgSwatch.addEventListener("click", (e) => {
+      e.preventDefault();
+      activateNativePicker(R.fgSwatch, R.fgColorInput, true);
     });
     R.fgSwatch.addEventListener("input", () => {
       sharedFgHex = R.fgSwatch.value.toUpperCase();
       renderAll();
     });
 
-    R.bgSwatch.addEventListener("click", async (e) => {
-      if (window.EyeDropper) {
-        e.preventDefault();
-        const hex = await pickColorNative();
-        if (hex) { sharedBgHex = hex; renderAll(); }
-      }
+    R.bgSwatch.addEventListener("click", (e) => {
+      e.preventDefault();
+      activateNativePicker(R.bgSwatch, R.bgColorInput, false);
     });
     R.bgSwatch.addEventListener("input", () => {
       sharedBgHex = R.bgSwatch.value.toUpperCase();
       renderAll();
     });
+
+    // Serial Picker button
+    const serialPickerBtn = document.getElementById(`${side}-serial-picker-btn`);
+    if (serialPickerBtn) {
+      serialPickerBtn.addEventListener("click", async () => {
+        if (!window.EyeDropper) {
+          alert("Your browser does not support the EyeDropper API.");
+          return;
+        }
+
+        document.body.classList.add("element-picking-cursor");
+        const pickerStatusEl = document.getElementById(`${side}-picker-status`);
+        if (pickerStatusEl) pickerStatusEl.style.visibility = "visible";
+
+        // Step 1: Pick Foreground
+        if (pickerStatusEl) pickerStatusEl.textContent = "Pick foreground color...";
+        const fgHex = await pickColorNative();
+
+        if (!fgHex) {
+          document.body.classList.remove("element-picking-cursor");
+          if (pickerStatusEl) pickerStatusEl.style.visibility = "hidden";
+          renderAll();
+          return;
+        }
+        sharedFgHex = fgHex;
+        renderAll();
+
+        // Step 2: Wait for any keypress as the fresh gesture
+        if (pickerStatusEl) pickerStatusEl.textContent = "✓ FG picked! Press any key to pick background...";
+
+        await new Promise(resolve => {
+          document.addEventListener("keydown", resolve, { once: true });
+        });
+
+        // Step 3: Pick Background
+        if (pickerStatusEl) pickerStatusEl.textContent = "Pick background color...";
+        const bgHex = await pickColorNative();
+
+        if (!bgHex) {
+          document.body.classList.remove("element-picking-cursor");
+          if (pickerStatusEl) pickerStatusEl.style.visibility = "hidden";
+          renderAll();
+          return;
+        }
+        sharedBgHex = bgHex;
+        renderAll();
+
+        document.body.classList.remove("element-picking-cursor");
+        if (pickerStatusEl) pickerStatusEl.style.visibility = "hidden";
+        renderAll();
+      });
+    }
+
 
     // Swap
     R.swapBtn.addEventListener("click", () => {

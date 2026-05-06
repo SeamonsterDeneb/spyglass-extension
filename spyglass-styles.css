@@ -1,5 +1,5 @@
 /* * Spyglass Extension
-* Version 2.4.3 (Cleaned & Restored & Fixed)
+* Version 2.4.12
 */
 
 /* Set the base font size to 16px to anchor all internal EM units */
@@ -799,9 +799,15 @@ body.element-picking-cursor * {
 
 #contrast-checker-container .sg-pickers {
     display: flex;
-    flex-direction: column;
     gap: 0.4em;
     margin-bottom: 0.75em;
+}
+
+#contrast-checker-container .sg-pickers__right-column {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4em;
+    flex-grow: 1;
 }
 
 #contrast-checker-container .sg-pickers__row {
@@ -809,6 +815,31 @@ body.element-picking-cursor * {
     gap: 0.4em;
     align-items: stretch;
 }
+
+#contrast-checker-container .sg-pickers__serial-btn {
+    font-weight: 700;
+    padding: 0.4em;
+    border-radius: 0.375em;
+    border: none;
+    cursor: pointer;
+    line-height: 1.3;
+    min-height: calc(3.25em + 0.4em + 3.25em); /* Height of element picker + gap + overlay picker */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-size: 0.875em;
+    color: white !important;
+    background: #6D28D9; /* A distinct purple color */
+    flex-shrink: 0; /* Prevent shrinking */
+}
+
+#contrast-checker-container .sg-pickers__serial-btn:hover {
+    background: #7C3AED !important; /* Lighter shade on hover */
+}
+
+
+
 
 #contrast-checker-container .sg-pickers__element-btn {
     flex: 1 1 0%;

@@ -1,6 +1,6 @@
 {
   "name": "spyglass",
-  "version": "2.1.0",
+  "version": "2.5.12",
   "description": "A tool for checking and fixing color contrast on web pages",
   "type": "module",
   "scripts": {
