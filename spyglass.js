@@ -1,11 +1,13 @@
 // ============================================================
-// SPYGLASS CONTRAST CHECKER — v2.2
+// SPYGLASS CONTRAST CHECKER — v2.4.11
 // ============================================================
-import { minSizeForLc, fontMatrixWeightKeys } from "./apca-lookup.js";
+import { minSizeForLc, minLcForSize, fontMatrixWeightKeys, fontMatrixLcKeys } from "./apca-lookup.js";
 import { APCAcontrast, sRGBtoY } from "apca-w3";
 (function () {
   if (document.getElementById("contrast-checker-container")) return;
 
+  // ─── CONSTANTS & SHARED STATE ─────────────────────────────
+  const version = "2.4.11";
   // ─── IMAGE BACKGROUND ANALYZER ───────────────────────────
   class ImageBackgroundAnalyzer {
     constructor() {
@@ -322,9 +324,6 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
     }
   }
 
-  // ─── CONSTANTS & SHARED STATE ─────────────────────────────
-  const version = "2.2";
-
   // Shared state — both panels read/write these
   let sharedFgHex = "#000000";
   let sharedBgHex = "#FFFFFF";
@@ -627,189 +626,6 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
   while (parsedDoc.body.firstChild) container.appendChild(parsedDoc.body.firstChild);
   document.body.appendChild(container);
 
-// ============================================================
-// END OF CHUNK 1 — continue immediately with chunk 2
-// ============================================================
-
-// ============================================================
-// SPYGLASS CONTRAST CHECKER — chunk 2 of 3
-// Paste this immediately after chunk 1.
-// ============================================================
-
-  // ─── STYLES ───────────────────────────────────────────────
-  /*const styleSheet = document.createElement("style");
-  styleSheet.innerText = [
-    // Container reset
-    '#contrast-checker-container{box-sizing:border-box;text-align:left;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:#374151;line-height:1.5;}',
-    "#contrast-checker-container *{box-sizing:border-box;font-family:inherit;line-height:inherit;color:inherit;}",
-    "#contrast-checker-container h3,#contrast-checker-container h4,#contrast-checker-container label,#contrast-checker-container span,#contrast-checker-container div,#contrast-checker-container p{margin:0;padding:0;background:none;border:none;}",
-    "#contrast-checker-container a{text-decoration:none !important;color:inherit;}",
-    "#contrast-checker-container button{font-size:1rem;background-color:transparent;background-image:none;border:none;padding:0;margin:0;cursor:pointer;text-transform:none;}",
-    "#contrast-checker-container input{font-size:1rem;margin:0;padding:0;line-height:normal;}",
-    "#contrast-checker-container button:hover{opacity:0.9;}",
-    // Details/summary
-    "#contrast-checker-container details{display:block;margin:0.5rem 0;}",
-    "#contrast-checker-container summary{list-style:none;outline:none;user-select:none;cursor:pointer;display:flex;align-items:center;border:1px solid #D1D5DB;border-radius:0.375rem;}",
-    "#contrast-checker-container summary::before{content:'\\25BA';display:inline-block;margin-right:0.5rem;transition:transform 0.2s ease-in-out;color:var(--spyglass-summary-arrow-color,#374151);}",
-    "#contrast-checker-container details[open] summary::before{transform:rotate(90deg);}",
-    "#contrast-checker-container details[open] summary{border-bottom-left-radius:0;border-bottom-right-radius:0;}",
-    "#contrast-checker-container summary::-webkit-details-marker{display:none;}",
-    // Tweak buttons
-    "#contrast-checker-container .tweak-btn{background-color:#E5E7EB;border:1px solid #D1D5DB;border-radius:9999px;width:1.4rem;height:1.4rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;background-repeat:no-repeat;background-position:center;background-size:11px 11px;padding:0 !important;}",
-    "#contrast-checker-container .tweak-btn:hover{background-color:#D1D5DB;}",
-    // Pass/fail colours
-    "#contrast-checker-container .pass{color:#047e58 !important;}",
-    "#contrast-checker-container .fail{color:#dc2626 !important;}",
-    // Picker cursor
-    "body.element-picking-cursor,body.element-picking-cursor *{cursor:pointer !important;}",
-    ".element-picker-hover-outline{outline:2px solid #3472D8 !important;box-shadow:0 0 10px rgba(52,114,216,0.7) !important;outline-offset:2px;}",
-    // Suggestion boxes
-    "#contrast-checker-container [id$='-fg-suggestion']:hover,#contrast-checker-container [id$='-bg-suggestion']:hover{opacity:0.8;}",
-    // Tab styles
-    "#contrast-checker-container .sg-tab{padding:0.6rem 1rem !important;border-radius:0.375rem 0.375rem 0 0;font-size:0.875rem;}",
-    "#contrast-checker-container .sg-tab-active{background:#FFF !important;border:1px solid #D1D5DB !important;border-bottom:1px solid #FFF !important;color:#1F2937 !important;font-weight:700 !important;cursor:default !important;}",
-    "#contrast-checker-container .sg-tab-inactive{background:#F3F4F6 !important;border:1px solid #E5E7EB !important;border-bottom:1px solid #D1D5DB !important;color:#6B7280 !important;font-weight:500 !important;cursor:pointer !important;}",
-    "#contrast-checker-container .sg-tab-inactive:hover{background:#E5E7EB !important;color:#374151 !important;}",
-    // Preview highlight
-    ".spyglass-preview-highlight{outline:2px dashed #2563EB !important;outline-offset:2px !important;box-shadow:0 0 0 4px #fff !important;border-radius:4px;transition:all 0.2s ease;}",
-    // Algo wrapper (now horizontal in title bar)
-    "#contrast-checker-container .spyglass-algo-wrapper{display:flex;align-items:center;}",
-    "#contrast-checker-container .spyglass-algo-label{font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:#6B7280;}",
-    "#contrast-checker-container .spyglass-algo-option{display:flex;align-items:center;gap:0.25rem;cursor:pointer;font-size:0.8rem;color:#374151;line-height:1.6;}",
-    '#contrast-checker-container .spyglass-algo-option input[type="radio"]{appearance:auto;-webkit-appearance:radio;width:auto;height:auto;cursor:pointer;}',
-    // APCA table (shared class names used in both panels)
-    "#contrast-checker-container [id$='-apca-status']{font-weight:700;font-size:0.75rem;padding:0.15rem 0.5rem;border-radius:0.375rem;color:white;}",
-    "#contrast-checker-container .apca-table{width:100%;border-collapse:collapse !important;font-size:0.78rem;}",
-    "#contrast-checker-container .apca-table thead tr{color:#6B7280;}",
-    "#contrast-checker-container .apca-table th,#contrast-checker-container .apca-table td{border:1px solid #F3F4F6 !important;vertical-align:middle !important;line-height:1.4 !important;background-color:#fff !important;}",
-    "#contrast-checker-container .apca-table thead th{border-bottom:2px solid #E5E7EB !important;}",
-    "#contrast-checker-container .apca-th{text-align:center !important;font-weight:600;padding:0.15rem 0.2rem 0.2rem !important;}",
-    "#contrast-checker-container .apca-th-left{text-align:left !important;padding-left:0 !important;}",
-    "#contrast-checker-container .apca-td{text-align:center !important;padding:0.25rem 0.2rem !important;}",
-    "#contrast-checker-container .apca-label{text-align:left !important;padding-left:0 !important;color:#6B7280;white-space:nowrap;}",
-    "#contrast-checker-container .apca-detected{font-weight:700;}",
-    "#contrast-checker-container .apca-needed{font-weight:700;}",
-    "#contrast-checker-container .apca-rec{color:#9CA3AF;}",
-    "#contrast-checker-container .apca-state-pass{color:#047e58 !important;}",
-    "#contrast-checker-container .apca-state-suggest{color:#92400E !important;}",
-    "#contrast-checker-container .apca-state-na{color:#9CA3AF !important;}",
-    "#contrast-checker-container .apca-rec-active{color:#1D4ED8 !important;font-weight:700;}",
-    "#contrast-checker-container [id$='-apca-status'].apca-pass{background-color:#047e58;}",
-    "#contrast-checker-container [id$='-apca-status'].apca-fail{background-color:#dc2626;}",
-    // Rec column green background
-    "#contrast-checker-container .sg-rec-cell{background-color:#F0FDF4 !important;}",
-    // Hex pill in the needed/rec color cells
-    "#contrast-checker-container .sg-hex-pill{display:inline-flex;align-items:center;gap:0.25rem;padding:0.1rem 0.35rem;border-radius:9999px;font-size:0.72rem;font-weight:700;cursor:pointer;border:1px solid #D1D5DB;background:#F9FAFB;color:#374151;white-space:nowrap;transition:background 0.15s;}",
-    "#contrast-checker-container .sg-hex-pill:hover{background:#E5E7EB;}",
-    "#contrast-checker-container .sg-hex-pill .sg-pill-swatch{width:10px;height:10px;border-radius:50%;border:1px solid rgba(0,0,0,0.15);display:inline-block;flex-shrink:0;}",
-    // Panel column divider
-    "#contrast-checker-container #apca-panel{display:none;}",   // hidden until Unified mode
-    "#contrast-checker-container.sg-unified #apca-panel{display:flex;}",
-    "#contrast-checker-container.sg-unified{width:54rem !important;}",
-    // Picker active highlight on input wrapper
-    "#contrast-checker-container .picking-active{box-shadow:0 0 0 3px rgba(59,130,246,0.7);transition:box-shadow 0.2s;border-radius:0.375rem;}",
-    // Panel header band
-    "#contrast-checker-container .sg-panel-header{display:flex;align-items:center;gap:0.5rem;flex-shrink:0;min-width:0;overflow:hidden;padding:0.35rem 0.75rem;border-bottom-width:1px;border-bottom-style:solid;}",
-    "#contrast-checker-container .sg-panel-header--wcag{background:#EFF6FF;border-bottom-color:#BFDBFE;}",
-    "#contrast-checker-container .sg-panel-header--apca{background:#F5F3FF;border-bottom-color:#DDD6FE;}",
-    "#contrast-checker-container .sg-panel-header__label{font-weight:800;font-size:0.8rem;letter-spacing:0.08em;text-transform:uppercase;flex-shrink:0;}",
-    "#contrast-checker-container .sg-panel-header__label--wcag{color:#1E40AF;}",
-    "#contrast-checker-container .sg-panel-header__label--apca{color:#5B21B6;}",
-    "#contrast-checker-container .sg-panel-header__sublabel{font-size:0.7rem;opacity:0.7;flex-shrink:0;}",
-    "#contrast-checker-container .sg-panel-header__sublabel--wcag{color:#1E40AF;}",
-    "#contrast-checker-container .sg-panel-header__sublabel--apca{color:#5B21B6;}",
-    "#contrast-checker-container .sg-panel-header__type-select{margin-left:auto;font-size:0.7rem;font-weight:600;padding:0.15rem 0.3rem;border-radius:0.25rem;background:white;color:#374151;cursor:pointer;min-width:0;max-width:100%;flex-shrink:1;}",
-    "#contrast-checker-container .sg-panel-header__type-select--apca{border-color:#DDD6FE;}",
-    // Color input rows
-    "#contrast-checker-container .sg-color-inputs{display:flex;align-items:flex-end;gap:0.4rem;margin-bottom:0.75rem;}",
-    "#contrast-checker-container .sg-color-field{flex-grow:1;}",
-    "#contrast-checker-container .sg-color-field__label{display:block;font-size:0.75rem;font-weight:500;color:#374151;margin-bottom:0.2rem;}",
-    "#contrast-checker-container .sg-color-field__row{display:flex;align-items:center;gap:0.35rem;}",
-    "#contrast-checker-container .sg-color-swatch-wrap{position:relative;width:1rem;height:1.75rem;flex-shrink:0;}",
-    "#contrast-checker-container .sg-color-swatch-btn{width:100%;height:100%;border:1px solid #D1D5DB;border-radius:0.25rem;}",
-    "#contrast-checker-container .sg-color-swatch-input{position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;cursor:pointer;padding:0;border:none;}",
-    "#contrast-checker-container .sg-color-input-wrap{position:relative;flex-grow:1;display:flex;align-items:center;gap:0.3rem;}",
-    "#contrast-checker-container .sg-color-input-inner{flex-grow:1;position:relative;}",
-    "#contrast-checker-container .sg-color-text-input{width:100%;height:1.75rem;padding:0.2rem 2rem 0.2rem 0.4rem;border:1px solid #D1D5DB;border-radius:0.25rem;font-size:0.8rem;}",
-    "#contrast-checker-container .sg-copy-btn{position:absolute;right:0;top:0;bottom:0;width:2rem;background:transparent;border:none;cursor:pointer;color:#6B7280;display:flex;align-items:center;justify-content:center;}",
-    "#contrast-checker-container .sg-suggestion-box{display:none;cursor:pointer;align-items:center;gap:0.1rem;flex-shrink:0;flex-direction:column;}",
-    "#contrast-checker-container .sg-suggestion-swatch{width:16px;height:16px;border-radius:0.25rem;border:1px solid #D1D5DB;background:white;}",
-    "#contrast-checker-container .sg-suggestion-label{font-weight:500;color:#4B5563;font-size:0.65rem;line-height:1;}",
-    "#contrast-checker-container .sg-swap-btn{flex-shrink:0;padding-bottom:0.1rem;}",
-    // Tweak panel
-    "#contrast-checker-container .sg-tweak-panel{background:#F9FAFB;padding:0.6rem;border-radius:0.375rem;margin-bottom:0.5rem;}",
-    "#contrast-checker-container .sg-tweak-panel__header{overflow:hidden;line-height:1.6;padding-bottom:0.4rem;border-bottom:1px solid #E5E7EB;margin-bottom:0.5rem;}",
-    "#contrast-checker-container .sg-tweak-panel__target-btn{float:right;background:#E5E7EB;color:#374151;font-size:0.7rem;font-weight:600;padding:0.2rem 0.4rem;border-radius:0.25rem;border:1px solid #D1D5DB;cursor:pointer;margin-left:0.4rem;}",
-    "#contrast-checker-container .sg-tweak-panel__pixel-btn{float:right;background:#3B82F6;color:#fff;font-size:0.7rem;font-weight:600;padding:0.2rem 0.4rem;border-radius:0.25rem;border:1px solid #2563EB;cursor:pointer;}",
-    "#contrast-checker-container .sg-tweak-panel__title{font-weight:600;font-size:0.875rem;}",
-    "#contrast-checker-container .sg-tweak-panel__controls{display:flex;flex-direction:column;gap:0.4rem;}",
-    "#contrast-checker-container .sg-tweak-panel__row{display:grid;grid-template-columns:4.5rem 1fr;align-items:center;gap:0.4rem;}",
-    "#contrast-checker-container .sg-tweak-panel__row-label{font-weight:500;font-size:0.8rem;}",
-    // Preview/details area
-    "#contrast-checker-container .sg-preview-details{margin-bottom:0.75rem;}",
-    "#contrast-checker-container .sg-preview-summary{font-weight:600;font-size:1rem;padding:0.5rem 0.75rem;border-radius:0.375rem;cursor:pointer;display:flex;justify-content:space-between;align-items:center;transition:all 0.2s;}",
-    "#contrast-checker-container .sg-preview-summary__text{font-weight:bold;font-size:0.95rem;padding:0.1rem 0.35rem;border-radius:0.25rem;}",
-    "#contrast-checker-container .sg-preview-summary__pill{margin-left:auto;background:#F3F4F6;padding:0.15rem 0.6rem;border-radius:9999px;font-weight:700;font-size:0.8rem;border:2px solid #D1D5DB;line-height:1.4;text-align:center;white-space:nowrap;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;min-width:4rem;}",
-    "#contrast-checker-container .sg-tabs-row{display:flex;gap:0.2rem;padding-left:0.4rem;margin-bottom:-1px;position:relative;z-index:10;align-items:flex-end;}",
-    "#contrast-checker-container .sg-tab-content-area{border:1px solid #D1D5DB;border-radius:0.375rem;border-top-left-radius:0;background:#FFF;height:12rem;overflow-y:auto;position:relative;}",
-    "#contrast-checker-container .sg-preview-pane{display:block;width:100%;min-height:100%;padding:0.75rem;box-sizing:border-box;}",
-    "#contrast-checker-container .sg-preview-pane__heading{font-weight:700;font-size:1rem;margin:0 0 0.4rem 0;}",
-    "#contrast-checker-container .sg-preview-pane__normal{font-size:1rem;margin:0 0 0.4rem 0;padding:0.2rem;}",
-    "#contrast-checker-container .sg-preview-pane__large{font-size:19px;font-weight:700;margin:0;padding:0.2rem;}",
-    "#contrast-checker-container .sg-details-pane{display:none;width:100%;min-height:100%;padding:0.75rem;box-sizing:border-box;}",
-    "#contrast-checker-container .sg-wcag-grid{grid-template-columns:1fr 1fr;gap:0.75rem;align-content:start;}",
-    "#contrast-checker-container .sg-wcag-grid__heading{font-weight:700;color:#374151;border-bottom:1px solid #E5E7EB;margin-bottom:0.4rem;padding-bottom:0.2rem;font-size:0.85rem;}",
-    "#contrast-checker-container .sg-wcag-grid__row{display:flex;justify-content:space-between;margin-bottom:0.2rem;font-size:0.8rem;align-items:baseline;}",
-    "#contrast-checker-container .sg-wcag-grid__note{margin-bottom:0.4rem;font-size:0.7rem;color:#6B7280;line-height:1.2;font-style:italic;}",
-        // APCA table and advisory note
-    "#contrast-checker-container .sg-apca-panel{display:block;}",
-    "#contrast-checker-container .sg-apca-header{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #E5E7EB;margin-bottom:0.5rem;padding-bottom:0.25rem;}",
-    "#contrast-checker-container .sg-apca-title{font-weight:700;color:#374151;font-size:0.85rem;}",
-    "#contrast-checker-container .sg-apca-advisory{margin-top:0.5rem;padding:0.35rem 0.5rem;border-radius:0.25rem;font-size:0.72rem;line-height:1.4;border-left:3px solid #DDD6FE;background:#F5F3FF;color:#5B21B6;}",
-    "#contrast-checker-container .sg-apca-advisory--pass{border-left-color:#6EE7B7;background:#F0FDF4;color:#065F46;}",
-    "#contrast-checker-container .sg-apca-advisory--fail{border-left-color:#FCA5A5;background:#FFF7F7;color:#991B1B;}",
-    // Picker buttons and status
-    "#contrast-checker-container .sg-pickers{display:flex;flex-direction:column;gap:0.4rem;margin-bottom:0.75rem;}",
-    "#contrast-checker-container .sg-pickers__row{display:flex;gap:0.4rem;align-items:stretch;}",
-    "#contrast-checker-container .sg-pickers__element-btn{flex:1 1 0%;font-weight:700;padding:0.4rem;border-radius:0.375rem;border:none;cursor:pointer;line-height:1.3;min-height:3.25rem;display:flex;align-items:center;justify-content:center;text-align:center;font-size:0.875rem;color:white !important;}",
-    "#contrast-checker-container .sg-pickers__element-btn--wcag{background:#14873D;}",
-    "#contrast-checker-container .sg-pickers__element-btn--apca{background:#5B21B6;}",
-    "#contrast-checker-container .sg-pickers__mode-btn{width:4.5rem;font-weight:700;padding:0.4rem;border-radius:0.375rem;border:none;cursor:pointer;font-size:0.8rem;color:white !important;}",
-    "#contrast-checker-container .sg-pickers__mode-btn--wcag{background:#166534;}",
-    "#contrast-checker-container .sg-pickers__mode-btn--apca{background:#4C1D95;}",
-    "#contrast-checker-container .sg-pickers__overlay-btn{font-weight:700;padding:0.4rem;border-radius:0.375rem;border:none;cursor:pointer;line-height:1.3;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:0.875rem;background:#5B21B6;color:white !important;}",
-    "#contrast-checker-container .sg-pickers__overlay-btn:hover{background:#6B7280 !important;}",
-    "#contrast-checker-container .sg-pickers__overlay-sublabel{font-size:0.65rem;display:block;}",
-    "#contrast-checker-container .sg-picker-status{text-align:center;font-size:0.8rem;color:#1D4ED8;font-weight:600;min-height:2.5rem;display:flex;align-items:center;justify-content:center;visibility:hidden;margin-bottom:0.4rem;}",
-    "#contrast-checker-container .sg-panel-body{padding:0.75rem;overflow-y:auto;flex-grow:1;}",
-    // Outer container and title bar
-    "#contrast-checker-container .sg-drag-handle{cursor:move;padding:0.5rem 1rem;background:#F3F4F6;border-bottom:1px solid #E5E7EB;border-top-left-radius:0.5rem;border-top-right-radius:0.5rem;flex-shrink:0;}",
-    "#contrast-checker-container .sg-drag-handle__top{display:flex;justify-content:space-between;align-items:center;margin-bottom:0.35rem;}",
-    "#contrast-checker-container .sg-drag-handle__title{font-weight:700;font-size:1.125rem;color:#1F2937;}",
-    "#contrast-checker-container .sg-drag-handle__icon{height:1.2em;vertical-align:middle;margin-right:0.5em;}",
-    "#contrast-checker-container .sg-drag-handle__close{font-size:1.25rem;font-weight:700;color:#6B7280 !important;line-height:1;padding:0.25rem;border-radius:0.25rem;}",
-    "#contrast-checker-container .sg-drag-handle__close:hover{background:#E5E7EB !important;color:#1F2937 !important;}",
-    "#contrast-checker-container .sg-drag-handle__modes{display:flex;align-items:center;gap:0.5rem;}",
-    "#contrast-checker-container .sg-panels-row{display:flex;flex-direction:row;flex-grow:1;overflow:hidden;}",
-    "#contrast-checker-container .sg-panel{flex:1;min-width:0;display:flex;flex-direction:column;}",
-    "#contrast-checker-container .sg-panel--apca{border-left:2px solid #E5E7EB;}",
-    "#contrast-checker-container .sg-footer{flex-shrink:0;padding:0.35rem 0.75rem;border-top:1px solid #E5E7EB;text-align:center;font-size:0.7rem;color:#6B7280;}",
-    // Dynamic JS element classes
-    "#contrast-checker-container .sg-tweak-controls{display:flex;justify-content:space-around;align-items:center;}",
-    "#contrast-checker-container .sg-tweak-control-group{display:flex;align-items:center;gap:0.2rem;}",
-    "#contrast-checker-container .sg-tweak-channel-label{font-weight:700;width:0.85rem;text-align:center;font-size:0.85rem;}",
-    "#contrast-checker-container .sg-tweak-channel-label--r{color:#dc2626;}",
-    "#contrast-checker-container .sg-tweak-channel-label--g{color:#16a34a;}",
-    "#contrast-checker-container .sg-tweak-channel-label--b{color:#2563eb;}",
-    "#contrast-checker-container .sg-preview-badge{padding:0.1rem 0.4rem;border-radius:0.25rem;font-size:0.7em;font-weight:bold;margin-left:0.4rem;vertical-align:middle;display:inline-block;}",
-    "#contrast-checker-container .sg-preview-badge--pass{background:#065f46;color:white;}",
-    "#contrast-checker-container .sg-preview-badge--fail{background:#b91c1c;color:white;}",
-    "#contrast-checker-container .sg-ratio-type-label{font-size:0.6em;color:#6B7280;}",
-    "#contrast-checker-container .sg-tweak-details{margin-bottom:0.75rem;}",
-    "#contrast-checker-container .sg-tweak-summary{font-weight:600;font-size:0.875rem;color:#374151;cursor:pointer;padding:0.4rem 0.5rem;background:#F9FAFB;border-radius:0.25rem;display:flex;justify-content:space-between;align-items:center;}",
-    "#contrast-checker-container .sg-preview-details__body{margin-bottom:0.75rem;}",
-  ].join(" ");
-  document.head.appendChild(styleSheet); */
 
   // ─── MATH & COLOR HELPERS ─────────────────────────────────
 
@@ -869,23 +685,29 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
     return Math.abs(APCAcontrast(fgY, bgY));
   }
 
-  // ─── SAVE ANALYSIS DATA ───────────────────────────────────
+  // ─── NATIVE COLOR PICKER ───────────────────────────────────
+  async function pickColorNative() {
+    if (!window.EyeDropper) return null;
+    const eyeDropper = new EyeDropper();
+    try {
+      const result = await eyeDropper.open();
+      return result.sRGBHex.toUpperCase();
+    } catch (e) {
+      return null; // User canceled (Esc)
+    }
+  }
+
   function saveAnalysis() {
-    // Helper to grab text from the "apca" side table cells
     const getApcaText = (id) => document.getElementById(`apca-apca-${id}`)?.textContent?.trim() || "N/A";
-    
-    // Helper specifically for the Color Rec cell (to handle the Hex Pill text)
     const getColorRec = () => {
       const pill = document.querySelector("#apca-apca-color-rec .sg-hex-pill span:last-child");
       return pill ? pill.textContent : getApcaText("color-rec");
     };
 
-    // Get individual recs to build the balanced string
     const sRec = getApcaText("rec-size");
     const wRec = getApcaText("rec-weight");
-    
-    // Logic: If both pass, just show a checkmark. Otherwise, combine them.
-    const balancedString = (sRec === "✓" && wRec === "✓") ? "✓" : `${sRec} / ${wRec}`;
+    const cRec = getColorRec();
+    const balancedString = (sRec === "✓" && wRec === "✓" && cRec === "✓") ? "✓" : `${sRec} / ${wRec} / ${cRec}`;
 
     const analysis = {
       timestamp: new Date().toLocaleString(),
@@ -895,12 +717,10 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
       results: {
         wcag: getRefs("wcag").contrastRatioDisplay.textContent,
         apcaLc: getRefs("apca").contrastRatioDisplay.textContent.replace('Lc ', ''),
-        recommendations: {
-          sizeMod: sRec,
-          weightMod: wRec,
-          colorMod: getColorRec(),
-          balanced: balancedString // Combined from the two recommendation cells
-        }
+        detected: {
+          combo: `${getApcaText("font-size")} / ${getApcaText("font-weight")} / ${sharedFgHex.toUpperCase()}`
+        },
+        recommendations: { sizeMod: sRec, weightMod: wRec, colorMod: cRec, balanced: balancedString }
       }
     };
 
@@ -912,11 +732,7 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
         if (btn) {
           const oldText = btn.textContent;
           btn.textContent = "✅ Saved";
-          btn.style.background = "#dcfce7";
-          setTimeout(() => { 
-            btn.textContent = oldText; 
-            btn.style.background = ""; 
-          }, 1500);
+          setTimeout(() => { btn.textContent = oldText; }, 1500);
         }
       });
     });
@@ -1032,17 +848,7 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
 
   // ─── APCA LOOKUP TABLE ────────────────────────────────────
   // Shared by both panel renderers
-  const apcaThresholds = {
-    10:  {400:100,500:100,600:90,700:80,800:80,900:80},
-    12:  {300:100,400:90,500:75,600:70,700:60,800:60,900:60},
-    14:  {300:90,400:75,500:70,600:60,700:55,800:55,900:55},
-    16:  {200:100,300:75,400:70,500:60,600:55,700:50,800:50,900:50},
-    18:  {200:90,300:70,400:65,500:55,600:50,700:45,800:45,900:45},
-    24:  {200:75,300:60,400:60,500:50,600:45,700:40,800:40,900:40},
-    36:  {200:60,300:50,400:50,500:45,600:40,700:35,800:35,900:35},
-    48:  {200:50,300:45,400:45,500:40,600:35,700:30,800:30,900:30},
-    96:  {200:40,300:38,400:38,500:35,600:30,700:25,800:25,900:25},
-  };
+  
   const apcaWeightKeys = [200,300,400,500,600,700,800,900];
 
   // ─── ELEMENT TYPE ADVISORY ────────────────────────────────
@@ -1407,14 +1213,8 @@ const typeSpan = document.createElement("span");
     // Pill pass threshold
     let pillPassThreshold = ps.tweakTargetContrast;
     if (isAPCA) {
-      const sizeInPx = parseFloat(currentFontSize);
-      const weightNum = parseInt(currentFontWeight, 10);
-      const sortedSizes = Object.keys(apcaThresholds).map(Number).sort((a,b)=>a-b);
-      let wk = apcaWeightKeys[0];
-      for (const k of apcaWeightKeys) { if (k<=weightNum) wk=k; else break; }
-      let bucket = sortedSizes[0];
-      for (const s of sortedSizes) { if (sizeInPx>=s) bucket=s; else break; }
-      pillPassThreshold = (apcaThresholds[bucket]&&apcaThresholds[bucket][wk]) || 100;
+      // Use our official lookup function instead of the deleted table
+      pillPassThreshold = minLcForSize(parseFloat(currentFontSize), parseInt(currentFontWeight, 10));
     }
 
     updateMiniRatioPill(R.miniRatioPill, minContrast, maxContrast, isRange, pillPassThreshold, isAPCA);
@@ -1429,111 +1229,30 @@ const typeSpan = document.createElement("span");
       const lcNow = Math.abs(contrast);
       const sizeInPx = parseFloat(currentFontSize);
       const weightNum = parseInt(currentFontWeight, 10);
-      const sortedSizes = Object.keys(apcaThresholds).map(Number).sort((a,b)=>a-b);
+      const sortedSizes = fontMatrixLcKeys.filter(lc => lc > 0);
 
-      function nearestWeightKey(w) {
-        let best=apcaWeightKeys[0];
-        for (const k of apcaWeightKeys) { if(k<=w) best=k; else break; }
-        return best;
-      }
-      function minLcFor(sizePx, weightKey) {
-        // Find the two size rows that bracket sizePx
-        let lowerSize = sortedSizes[0], upperSize = sortedSizes[sortedSizes.length - 1];
-        for (let i = 0; i < sortedSizes.length; i++) {
-          if (sortedSizes[i] <= sizePx) lowerSize = sortedSizes[i];
-          if (sortedSizes[i] >= sizePx && (upperSize === sortedSizes[sortedSizes.length-1] || sortedSizes[i] < upperSize)) {
-            upperSize = sortedSizes[i];
-          }
-        }
-        // Find the upper size correctly
-        upperSize = sortedSizes[sortedSizes.length - 1];
-        for (const s of sortedSizes) { if (s >= sizePx) { upperSize = s; break; } }
-
-        const lowerRow = apcaThresholds[lowerSize];
-        const upperRow = apcaThresholds[upperSize];
-
-        // Find the two weight columns that bracket weightKey
-        const allWeights = apcaWeightKeys;
-        let lowerW = allWeights[0], upperW = allWeights[allWeights.length - 1];
-        for (const w of allWeights) { if (w <= weightKey) lowerW = w; }
-        for (const w of allWeights) { if (w >= weightKey) { upperW = w; break; } }
-
-        // Helper: interpolate along the weight axis for a given size row,
-        // skipping missing entries by finding the nearest valid ones
-        function interpWeight(row, wLo, wHi, wTarget) {
-          if (!row) return null;
-          // Walk outward to find valid weight entries if exact ones are missing
-          let lo = wLo, hi = wHi;
-          while (lo >= allWeights[0] && row[lo] == null) lo -= 100;
-          while (hi <= allWeights[allWeights.length-1] && row[hi] == null) hi += 100;
-          const vLo = row[lo], vHi = row[hi];
-          if (vLo == null && vHi == null) return null;
-          if (vLo == null) return vHi;
-          if (vHi == null) return vLo;
-          if (lo === hi) return vLo;
-          // Linear interpolation along weight axis
-          const t = (wTarget - lo) / (hi - lo);
-          return vLo + t * (vHi - vLo);
-        }
-
-        const lcAtLowerSize = interpWeight(lowerRow, lowerW, upperW, weightKey);
-        const lcAtUpperSize = interpWeight(upperRow, lowerW, upperW, weightKey);
-
-        if (lcAtLowerSize == null && lcAtUpperSize == null) return null;
-        if (lcAtLowerSize == null) return lcAtUpperSize;
-        if (lcAtUpperSize == null) return lcAtLowerSize;
-        if (lowerSize === upperSize) return lcAtLowerSize;
-
-        // Linear interpolation along the size axis
-        const t = (sizePx - lowerSize) / (upperSize - lowerSize);
-        return lcAtLowerSize + t * (lcAtUpperSize - lcAtLowerSize);
-      }
-
-      const lookupWeight = nearestWeightKey(weightNum);
-      const tableThreshold = minLcFor(sizeInPx, lookupWeight) ?? 100;
-      const minLcRequired = tableThreshold;
+      // Get the official required Lc for the current detected size and weight
+      const minLcRequired = minLcForSize(parseFloat(currentFontSize), parseInt(currentFontWeight, 10));
 
       let neededSizeText, neededWeightText;
 
       if (lcNow >= minLcRequired) {
         neededSizeText = "✓ passes";
-      } else {
-        // Walk from the smallest table size upward in 0.5px steps,
-        // using interpolation to find the smallest size where lcNow
-        // meets the interpolated threshold at the detected weight.
-        const minTableSize = sortedSizes[0];
-        const maxTableSize = sortedSizes[sortedSizes.length - 1];
-        let neededSize = null;
-        for (let sz = minTableSize; sz <= maxTableSize; sz += 0.5) {
-          const threshold = minLcFor(sz, lookupWeight);
-          if (threshold != null && lcNow >= threshold) {
-            neededSize = sz;
-            break;
-          }
-        }
-        // Round up to nearest 0.5 and display cleanly
-        const neededSizeLabel = neededSize != null
-          ? `≥ ${neededSize % 1 === 0 ? neededSize : neededSize.toFixed(1)}px`
-          : "N/A";
-        neededSizeText = neededSizeLabel;
-      }
-
-      if (lcNow >= minLcRequired) {
         neededWeightText = "✓ passes";
       } else {
-        // Walk standard weight increments (100-unit steps) using interpolated
-        // size thresholds so the result is consistent with the size interpolation.
-        let lightestPassingWeight = null;
-        for (const wk of apcaWeightKeys) {
-          const threshold = minLcFor(sizeInPx, wk);
-          if (threshold != null && lcNow >= threshold) {
-            lightestPassingWeight = wk;
-            break;
-          }
-        }
-        neededWeightText = lightestPassingWeight != null
-          ? `≥ ${lightestPassingWeight}`
+        // Find the specific size needed at the current weight
+        const neededSize = minSizeForLc(lcNow, parseInt(currentFontWeight, 10));
+        neededSizeText = (neededSize && neededSize < 500) 
+          ? `≥ ${neededSize % 1 === 0 ? neededSize : neededSize.toFixed(1)}px` 
           : "N/A";
+
+        // Find the specific weight needed at the current size
+        let lightestPassingWeight = null;
+        for (const wk of fontMatrixWeightKeys) {
+          const threshold = minLcForSize(parseFloat(currentFontSize), wk);
+          if (lcNow >= threshold) { lightestPassingWeight = wk; break; }
+        }
+        neededWeightText = lightestPassingWeight ? `≥ ${lightestPassingWeight}` : "N/A";
       }
 
       R.apcaFontSize.textContent    = currentFontSize;
@@ -1611,18 +1330,23 @@ const typeSpan = document.createElement("span");
         }
       } else {
         let bestRec = null, bestScore = Infinity;
-        const minTableSize = sortedSizes[0];
-        const maxTableSize = sortedSizes[sortedSizes.length - 1];
-        for (let sz = minTableSize; sz <= maxTableSize; sz += 0.5) {
-          if (sz < sizeInPx) continue;
-          for (const wk of apcaWeightKeys) {
-            if (wk < weightNum) continue;
-            const threshold = minLcFor(sz, wk);
-            if (threshold == null || lcNow < threshold) continue;
-            const sd = (sz - sizeInPx) / sizeInPx;
-            const wd = (wk - weightNum) / Math.max(weightNum, 100);
-            const score = Math.sqrt(sd * sd + wd * wd);
-            if (score < bestScore) { bestScore = score; bestRec = { sz, wk }; }
+        const curSize = parseFloat(currentFontSize);
+        const curWeight = parseInt(currentFontWeight, 10);
+
+        for (const wk of fontMatrixWeightKeys) {
+          if (wk < curWeight) continue;
+          
+          const sz = minSizeForLc(lcNow, wk);
+          if (!sz || sz > 500 || sz < curSize) continue;
+
+          // Score the combo (size change vs weight change)
+          const sizeDiff = (sz - curSize) / curSize;
+          const weightDiff = (wk - curWeight) / 400;
+          const score = Math.sqrt(sizeDiff * sizeDiff + weightDiff * weightDiff);
+          
+          if (score < bestScore) {
+            bestScore = score;
+            bestRec = { sz, wk };
           }
         }
         if (bestRec) {
@@ -1741,7 +1465,7 @@ const typeSpan = document.createElement("span");
           colorRecEl.className = "apca-td apca-rec sg-rec-cell apca-state-pass";
         }
       } else {
-        const neededColorHex = adjustLuminanceAPCA(fgRgba, bgRgba, tableThreshold, true);
+        const neededColorHex = adjustLuminanceAPCA(fgRgba, bgRgba, minLcRequired, true);
         colorNeededEl.textContent = "";
         colorNeededEl.className = "apca-td";
         colorNeededEl.appendChild(makeHexPill(neededColorHex, neededColorHex));
@@ -1763,7 +1487,7 @@ const typeSpan = document.createElement("span");
           if (sz < sizeInPx) continue;
           for (const wk of apcaWeightKeys) {
             if (wk < weightNum) continue;
-            const threshold = minLcFor(sz, wk);
+            const threshold = minLcForSize(sz, wk);
             if (threshold == null || lcNow < threshold) continue;
             const sd = (sz - sizeInPx) / sizeInPx;
             const wd = (wk - weightNum) / Math.max(weightNum, 100);
@@ -1777,9 +1501,7 @@ const typeSpan = document.createElement("span");
 
         if (bestRecForColor) {
           // What Lc does the table require at the recommended size+weight?
-          let recBucket = sortedSizes[0];
-          for (const s of sortedSizes) { if (bestRecForColor.sizePx >= s) recBucket = s; else break; }
-          const recThreshold = (apcaThresholds[recBucket] && apcaThresholds[recBucket][bestRecForColor.wk]) || 75;
+          const recThreshold = minLcForSize(bestRecForColor.sizePx, bestRecForColor.wk) || 75;
           const recTarget = Math.max(recThreshold, lcNow); // only nudge as far as needed
           recColorHex = adjustLuminanceAPCA(fgRgba, bgRgba, recTarget, true);
         }
@@ -1790,12 +1512,12 @@ const typeSpan = document.createElement("span");
       }
 
       // APCA suggestions
-      const apcaSuggestionTarget = tableThreshold;
+      const apcaSuggestionTarget = minLcRequired;
       if (contrast < apcaSuggestionTarget) {
         R.fgSuggestionBox.style.display = "flex";
         R.bgSuggestionBox.style.display = "flex";
-        R.fgSuggestionLabel.textContent = `Lc ${tableThreshold}`;
-        R.bgSuggestionLabel.textContent = `Lc ${tableThreshold}`;
+        R.fgSuggestionLabel.textContent = `Lc ${minLcRequired}`;
+        R.bgSuggestionLabel.textContent = `Lc ${minLcRequired}`;
 
         const fgSugHex = adjustLuminanceAPCA(fgRgba, bgRgba, apcaSuggestionTarget, true);
         const sugFgRgba = hexToRgba(fgSugHex);
@@ -2206,10 +1928,25 @@ const typeSpan = document.createElement("span");
       renderAll();
     });
 
-    // Color swatches
+    // Color swatches (EyeDropper API)
+    R.fgSwatch.addEventListener("click", async (e) => {
+      if (window.EyeDropper) {
+        e.preventDefault();
+        const hex = await pickColorNative();
+        if (hex) { sharedFgHex = hex; renderAll(); }
+      }
+    });
     R.fgSwatch.addEventListener("input", () => {
       sharedFgHex = R.fgSwatch.value.toUpperCase();
       renderAll();
+    });
+
+    R.bgSwatch.addEventListener("click", async (e) => {
+      if (window.EyeDropper) {
+        e.preventDefault();
+        const hex = await pickColorNative();
+        if (hex) { sharedBgHex = hex; renderAll(); }
+      }
     });
     R.bgSwatch.addEventListener("input", () => {
       sharedBgHex = R.bgSwatch.value.toUpperCase();
@@ -2326,47 +2063,6 @@ const typeSpan = document.createElement("span");
     if (pixelAnalyzer) pixelAnalyzer.cleanup();
     container.remove();
   });
-  document.getElementById("save-analysis-btn")?.addEventListener("click", saveAnalysis);
-  document.getElementById("download-csv-btn")?.addEventListener("click", () => {
-    chrome.storage.local.get({ spyglass_history: [] }, (data) => {
-      const history = data.spyglass_history;
-      if (history.length === 0) {
-        alert("No saved analyses found.");
-        return;
-      }
-
-      const headers = [
-        "Timestamp", "URL", "Page", "FG", "BG", "WCAG Ratio", 
-        "APCA Lc", "Size Mod", "Weight Mod", "Color Mod", "Balanced Combo"
-      ];
-
-      const rows = history.map(s => [
-        s.timestamp,
-        s.url,
-        s.pageTitle,
-        s.colors.foreground,
-        s.colors.background,
-        s.results.wcag,
-        s.results.apcaLc,
-        s.results.recommendations.sizeMod,
-        s.results.recommendations.weightMod,
-        s.results.recommendations.colorMod,
-        s.results.recommendations.balanced
-      ]);
-
-      const csvContent = [headers, ...rows]
-        .map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(","))
-        .join("\n");
-
-      const blob = new Blob([csvContent], { type: "text/csv" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `spyglass-master-report.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
-    });
-  });
   // ─── DRAG HANDLE ──────────────────────────────────────────
   const dragHandle = document.getElementById("drag-handle");
   let isDragging = false, dragOffsetX, dragOffsetY;
@@ -2394,13 +2090,9 @@ const typeSpan = document.createElement("span");
   wireSide("apca");
 
   // 2. Wire Global UI Buttons (Save & CSV in the top handle)
-  document.getElementById("save-analysis-btn")?.addEventListener("click", () => {
-    e.stopImmediatePropagation();
-    saveAnalysis(); 
-  });
+  document.getElementById("save-analysis-btn")?.addEventListener("click", saveAnalysis);
 
   document.getElementById("download-csv-btn")?.addEventListener("click", () => {
-    e.stopImmediatePropagation();
     chrome.storage.local.get({ spyglass_history: [] }, (data) => {
       const history = data.spyglass_history;
       if (history.length === 0) {
@@ -2408,10 +2100,14 @@ const typeSpan = document.createElement("span");
         return;
       }
 
-      const headers = ["Timestamp", "URL", "Page", "FG", "BG", "WCAG Ratio", "APCA Lc", "Size Mod", "Weight Mod", "Color Mod", "Balanced Combo"];
+      const headers = [
+        "Timestamp", "URL", "Page", "FG", "BG", "WCAG Ratio", "APCA Lc", 
+        "Detected Combo", "Size Mod", "Weight Mod", "Color Mod", "Balanced Combo"
+      ];
       const rows = history.map(s => [
         s.timestamp, s.url, s.pageTitle, s.colors.foreground, s.colors.background,
         s.results.wcag, s.results.apcaLc,
+        s.results.detected?.combo || "N/A",
         s.results.recommendations.sizeMod, s.results.recommendations.weightMod,
         s.results.recommendations.colorMod, s.results.recommendations.balanced
       ]);
@@ -2420,11 +2116,10 @@ const typeSpan = document.createElement("span");
       const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
-      link.setAttribute("href", url);
-      link.setAttribute("download", "spyglass_report.csv");
-      document.body.appendChild(link);
+      link.href = url;
+      link.download = "spyglass_report.csv";
       link.click();
-      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
     });
   });
 

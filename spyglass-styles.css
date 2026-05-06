@@ -1,7 +1,7 @@
-/* 
-* Spyglass Extension
-* Version 2.2
+/* * Spyglass Extension
+* Version 2.4.3 (Cleaned & Restored & Fixed)
 */
+
 /* Set the base font size to 16px to anchor all internal EM units */
 #contrast-checker-container {
     box-sizing: border-box;
@@ -329,10 +329,6 @@ body.element-picking-cursor * {
 
 #contrast-checker-container [id$='-apca-status'].apca-fail {
     background-color: #dc2626;
-}
-
-#contrast-checker-container .sg-rec-cell {
-    background-color: #F0FDF4 !important;
 }
 
 #contrast-checker-container .sg-hex-pill {
@@ -1090,4 +1086,38 @@ body.element-picking-cursor * {
     opacity: 0.6;
     display: block;
     margin-bottom: 2px;
+}
+
+/* --- APCA RECOMMENDATION COLUMN HIGHLIGHTING --- */
+
+/* Highlight the whole Recommendation column vertically */
+#contrast-checker-container .apca-table th:last-child,
+#contrast-checker-container .apca-table td:last-child {
+    background-color: #F0FDF4 !important; /* Soft green */
+    border-left: 2px solid #059669 !important; /* Emerald side borders */
+    border-right: 2px solid #059669 !important;
+}
+
+/* Cap the top of the column outline */
+#contrast-checker-container .apca-table thead th:last-child {
+    border-top: 2px solid #059669 !important;
+}
+
+/* Cap the bottom of the column outline */
+#contrast-checker-container .apca-table tbody tr:last-child td:last-child {
+    border-bottom: 2px solid #059669 !important;
+}
+
+/* State for active recommendation (Proposed vs Rec) */
+#contrast-checker-container .apca-rec-active {
+    font-weight: 800;
+    color: #065F46 !important;
+}
+
+/* Distinguish Proposed column (middle) as secondary one-off fixes */
+#contrast-checker-container .apca-needed {
+    background-color: #FFFBEB !important; /* Soft amber */
+    color: #92400E !important;
+    font-style: italic;
+    font-size: 0.9em;
 }
