@@ -1164,3 +1164,53 @@ body.element-picking-cursor * {
     border-radius: 6px;
     padding: 4px 8px;
 }
+
+#contrast-checker-container .sg-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0,0,0,0);
+    white-space: nowrap;
+    border: 0;
+}
+
+#contrast-checker-container .sg-rec-header {
+    position: relative;
+}
+
+#contrast-checker-container .sg-apca-copy-rec-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: #6B7280;
+    padding: 1px 2px;
+    border-radius: 3px;
+    vertical-align: middle;
+    margin-left: 3px;
+}
+
+#contrast-checker-container .sg-apca-copy-rec-btn:hover {
+    color: #1D4ED8;
+    background: #EFF6FF;
+}
+
+#contrast-checker-container .sg-apca-rec-copied {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    background: white;
+    color: #047e58;
+    font-weight: 700;
+    font-size: 10px;
+    padding: 1px 4px;
+    border-radius: 3px;
+    white-space: nowrap;
+    pointer-events: none;
+}

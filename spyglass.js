@@ -1,13 +1,18 @@
 // ============================================================
-// SPYGLASS CONTRAST CHECKER — v2.4.19
+// SPYGLASS CONTRAST CHECKER — v2.5
 // ============================================================
 import { minSizeForLc, minLcForSize, fontMatrixWeightKeys, fontMatrixLcKeys } from "./apca-lookup.js";
 import { APCAcontrast, sRGBtoY } from "apca-w3";
 (function () {
-  if (document.getElementById("contrast-checker-container")) return;
+  // If already injected, just toggle visibility or clean up zombie listeners
+  const existing = document.getElementById("contrast-checker-container");
+  if (existing) {
+    existing.remove();
+    return;
+  }
 
   // ─── CONSTANTS & SHARED STATE ─────────────────────────────
-  const version = "2.4.19";
+  const version = "2.5";
   // ─── IMAGE BACKGROUND ANALYZER ───────────────────────────
   class ImageBackgroundAnalyzer {
     constructor() {
@@ -510,7 +515,13 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
                         <th class="apca-th apca-th-left">Property</th>
                         <th class="apca-th">Detected</th>
                         <th class="apca-th">Proposed</th>
-                        <th class="apca-th">Recommendation</th>
+                        <th class="apca-th sg-rec-header" id="${S}-apca-rec-header">
+                          <span id="${S}-apca-rec-header-label">Recommended</span>
+                          <button id="${S}-apca-copy-rec-btn" class="sg-apca-copy-rec-btn" title="Copy recommendation">
+                            <span class="sg-sr-only">Copy recommendation</span>
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                          </button>
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1172,17 +1183,25 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
       currentFontWeight = cs.fontWeight;
     }
 
-    // Contrast value(s)
+    // Contrast value(s) — explicitly scoped to this panel
     let contrast, minContrast, maxContrast, isRange, contrastDisplay;
+    const panelIsAPCA = side === "apca";
 
     if (pixelAnalysisResult) {
-      minContrast = pixelAnalysisResult.minContrast;
-      maxContrast = pixelAnalysisResult.maxContrast;
+      const pixelContrasts = pixelAnalysisResult.sampledPixels
+        ? pixelAnalysisResult.sampledPixels.map(bg =>
+            panelIsAPCA
+              ? Math.abs(APCAcontrast(sRGBtoY([effectiveFg.r, effectiveFg.g, effectiveFg.b]), sRGBtoY([bg.r, bg.g, bg.b])))
+              : pixelAnalyzer.calculateContrast(effectiveFg, bg)
+          )
+        : [panelIsAPCA ? getAPCAContrast(effectiveFg, effectiveBg) : getContrast(effectiveFg, effectiveBg)];
+      minContrast = Math.min(...pixelContrasts);
+      maxContrast = Math.max(...pixelContrasts);
       isRange = true;
-      contrastDisplay = isAPCA
+      contrast = minContrast;
+      contrastDisplay = panelIsAPCA
         ? `Lc ${minContrast.toFixed(1)}–${maxContrast.toFixed(1)}`
         : `${minContrast.toFixed(2)}–${maxContrast.toFixed(2)}:1`;
-      contrast = minContrast;
 
       const gradientCss = generatePreviewGradient(pixelAnalysisResult);
       if (gradientCss) {
@@ -1585,17 +1604,56 @@ const typeSpan = document.createElement("span");
         if (el) { el.textContent = results[key]?"Pass":"Fail"; el.className = results[key]?"pass":"fail"; }
       }
 
+      const sizeInPx = parseFloat(currentFontSize);
+      const weightNum = parseInt(currentFontWeight, 10);
+      const isBold = weightNum >= 700;
+      const isLargeText = sizeInPx >= 24 || (sizeInPx >= 18.5 && isBold);
+
+      // Calculate minimum change to qualify as large text
+      function calcLargeTextRequirement(sizePx, weight) {
+        // Already qualifies
+        if (sizePx >= 24 || (sizePx >= 18.5 && weight >= 700)) return null;
+        // Can we get there by just bumping weight to 700?
+        if (sizePx >= 18.5 && weight < 700) return `${sizePx}px, 700+`;
+        // Close to 18.5px — favor weight bump
+        if (sizePx >= 17 && sizePx < 18.5) return `18.5px+, 700+`;
+        // Close to 24px — favor size bump
+        if (sizePx >= 21 && sizePx < 24) return `24px+, any weight`;
+        // Not close to either threshold — show both options
+        return `24px+ or 18.5px+, 700+`;
+      }
+
+      // Calculate minimum change to qualify as normal (non-large) text
+      // Normal text just means it doesn't meet large text criteria —
+      // so we describe what the current text would need to shrink/lighten to
+      function calcNormalTextRequirement(sizePx, weight) {
+        if (sizePx < 18.5) return `< 18.5px, any weight`;
+        if (sizePx < 24 && weight < 700) return `${sizePx}px, < 700`;
+        return `< 24px, < 700`;
+      }
+
       const passNormal = contrast >= 4.5;
       const passLarge  = contrast >= 3.0;
-      R.previewStatusNormal.textContent = passNormal
-        ? `Regular Text (${currentFontSize}, ${currentFontWeight}): Pass`
-        : `Regular Text (${currentFontSize}, ${currentFontWeight}): Fail`;
-      R.previewStatusNormal.className = `sg-preview-badge ${passNormal ? "sg-preview-badge--pass" : "sg-preview-badge--fail"}`;
 
-      R.previewStatusLarge.textContent = passLarge
-        ? `Large Text (${currentFontSize}, ${currentFontWeight}): Pass`
-        : `Large Text (${currentFontSize}, ${currentFontWeight}): Fail`;
-      R.previewStatusLarge.className = `sg-preview-badge ${passLarge ? "sg-preview-badge--pass" : "sg-preview-badge--fail"}`;
+      if (isLargeText) {
+        // Detected text IS large — normal line shows requirement, large line shows detected
+        const largeReq = calcNormalTextRequirement(sizeInPx, weightNum);
+        R.previewStatusNormal.textContent = `Normal text (AA): ${passNormal ? largeReq : `needs ${largeReq}`}`;
+        R.previewStatusNormal.className = `sg-preview-badge ${passNormal ? "sg-preview-badge--pass" : "sg-preview-badge--fail"}`;
+
+        R.previewStatusLarge.textContent = `Large text (AA): ${currentFontSize}, ${currentFontWeight}`;
+        R.previewStatusLarge.className = `sg-preview-badge ${passLarge ? "sg-preview-badge--pass" : "sg-preview-badge--fail"}`;
+      } else {
+        // Detected text IS normal — normal line shows detected, large line shows requirement
+        const largeReq = calcLargeTextRequirement(sizeInPx, weightNum);
+        R.previewStatusNormal.textContent = `Normal text (AA): ${currentFontSize}, ${currentFontWeight}`;
+        R.previewStatusNormal.className = `sg-preview-badge ${passNormal ? "sg-preview-badge--pass" : "sg-preview-badge--fail"}`;
+
+        R.previewStatusLarge.textContent = largeReq
+          ? `Large text (AA): ${passLarge ? largeReq : `needs ${largeReq}`}`
+          : `Large text (AA): ${currentFontSize}, ${currentFontWeight}`;
+        R.previewStatusLarge.className = `sg-preview-badge ${passLarge ? "sg-preview-badge--pass" : "sg-preview-badge--fail"}`;
+      }
       if (contrast < ps.tweakTargetContrast) {
         R.fgSuggestionBox.style.display = "flex";
         R.bgSuggestionBox.style.display = "flex";
@@ -1662,7 +1720,13 @@ const typeSpan = document.createElement("span");
   // ─── RENDER BOTH PANELS ───────────────────────────────────
   function renderAll() {
     const mode = getAlgoMode();
+    // Snapshot shared state before either panel renders
+    const fgSnapshot = sharedFgHex;
+    const bgSnapshot = sharedBgHex;
     if (mode === "wcag" || mode === "unified") renderPanel("wcag");
+    // Restore shared state in case WCAG render mutated anything
+    sharedFgHex = fgSnapshot;
+    sharedBgHex = bgSnapshot;
     if (mode === "apca" || mode === "unified") renderPanel("apca");
   }
 
@@ -2092,6 +2156,69 @@ const typeSpan = document.createElement("span");
         : (isWcag ? "#166534" : "#4C1D95");
     });
 
+    // APCA copy recommendation button
+    if (side === "apca") {
+      document.getElementById("apca-apca-copy-rec-btn")?.addEventListener("click", () => {
+        const sizeEl   = document.getElementById("apca-apca-rec-size");
+        const weightEl = document.getElementById("apca-apca-rec-weight");
+        const colorEl  = document.getElementById("apca-apca-color-rec");
+
+        // Extract detected (current) values for comparison
+        const detectedSizeText   = document.getElementById("apca-apca-font-size")?.textContent?.trim();
+        const detectedWeightText = document.getElementById("apca-apca-font-weight")?.textContent?.trim();
+        const detectedColorPill  = document.getElementById("apca-apca-color-detected")?.querySelector(".sg-hex-pill span:last-child");
+        const detectedColorText  = detectedColorPill ? detectedColorPill.textContent.trim() : null;
+
+        // Extract text values, falling back gracefully
+        const sizeText   = sizeEl?.textContent?.trim();
+        const weightText = weightEl?.textContent?.trim();
+
+        // Color rec might be a hex pill — grab the label span text
+        const colorPill  = colorEl?.querySelector(".sg-hex-pill span:last-child");
+        const colorText  = colorPill ? colorPill.textContent.trim() : colorEl?.textContent?.trim();
+
+        // Only include properties that are actual recommendations (not ✓ or N/A)
+        // AND are different from the detected value
+        const lines = [];
+        if (sizeText && sizeText !== "✓" && sizeText !== "N/A") {
+          const cleanSize = sizeText.replace(/^[↑≥]\s*/, "");
+          const cleanDetectedSize = detectedSizeText?.replace(/^[↑≥]\s*/, "");
+          if (cleanSize !== cleanDetectedSize) lines.push(`font-size: ${cleanSize};`);
+        }
+        if (weightText && weightText !== "✓" && weightText !== "N/A") {
+          const cleanWeight = weightText.replace(/^[↑≥]\s*/, "");
+          const cleanDetectedWeight = detectedWeightText?.replace(/^[↑≥]\s*/, "");
+          if (cleanWeight !== cleanDetectedWeight) lines.push(`font-weight: ${cleanWeight};`);
+        }
+        if (colorText && colorText !== "✓" && colorText !== "N/A") {
+          if (colorText.toUpperCase() !== detectedColorText?.toUpperCase()) {
+            lines.push(`color: ${colorText};`);
+          }
+        }
+
+        if (lines.length === 0) {
+          lines.push("/* Already meets recommendations */");
+        }
+
+        const cssText = lines.join("\n");
+        navigator.clipboard.writeText(cssText).then(() => {
+          const headerEl = document.getElementById("apca-apca-rec-header");
+          const labelEl  = document.getElementById("apca-apca-rec-header-label");
+          if (!headerEl || !labelEl) return;
+
+          // Flash "Copied!" over the header label
+          labelEl.style.visibility = "hidden";
+          const flash = document.createElement("span");
+          flash.className = "sg-apca-rec-copied";
+          flash.textContent = "Copied!";
+          headerEl.appendChild(flash);
+          setTimeout(() => {
+            flash.remove();
+            labelEl.style.visibility = "visible";
+          }, 1500);
+        });
+      });
+    }
     // Element type advisory dropdown (APCA only)
     if (side === "apca") {
       document.getElementById("apca-element-type-select")
@@ -2127,6 +2254,10 @@ const typeSpan = document.createElement("span");
   document.getElementById("close-checker-btn")?.addEventListener("click", () => {
     stopAllPickers();
     if (pixelAnalyzer) pixelAnalyzer.cleanup();
+    document.removeEventListener("mousemove", handleHoverPickerMouseMove);
+    document.removeEventListener("mousemove", handleRestingPickerMouseMove);
+    document.removeEventListener("click", handleElementPickerClick, true);
+    document.removeEventListener("keydown", handleEscapeKey);
     container.remove();
   });
   // ─── DRAG HANDLE ──────────────────────────────────────────
