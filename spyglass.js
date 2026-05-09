@@ -1,5 +1,5 @@
 // ============================================================
-// SPYGLASS CONTRAST CHECKER — v2.5
+// SPYGLASS CONTRAST CHECKER — v2.8
 // ============================================================
 import { minSizeForLc, minLcForSize, fontMatrixWeightKeys, fontMatrixLcKeys } from "./apca-lookup.js";
 import { APCAcontrast, sRGBtoY } from "apca-w3";
@@ -12,7 +12,7 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
   }
 
   // ─── CONSTANTS & SHARED STATE ─────────────────────────────
-  const version = "2.5";
+  const version = "2.8";
   // ─── IMAGE BACKGROUND ANALYZER ───────────────────────────
   class ImageBackgroundAnalyzer {
     constructor() {
@@ -591,11 +591,12 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
           <img src="SPYGLASS_ICON_URL_PLACEHOLDER" alt="" class="sg-drag-handle__icon">
           Spyglass Contrast Checker (v${version})
         </h3>
-        <div style="display: flex; gap: 8px; align-items: center; margin-left: auto;">
-                <button id="save-analysis-btn" class="sg-save-btn">💾 Save</button>
-                <button id="download-csv-btn" class="sg-save-btn">📊 CSV</button>
-                <button id="close-checker-btn" class="sg-drag-handle__close">✕</button>
-            </div>
+        <button id="close-checker-btn" class="sg-drag-handle__close">✕</button>
+      </div>
+      <div class="sg-drag-handle__actions">
+        <button id="save-analysis-btn" class="sg-save-btn">💾 Save Test</button>
+        <button id="download-csv-btn" class="sg-save-btn">📊 Download CSV</button>
+        <button id="send-to-seamonster-btn" class="sg-send-btn">🐙 Send to SeaMonster</button>
       </div>
       <div class="sg-drag-handle__modes">
         <span class="spyglass-algo-label">Mode:</span>
@@ -614,6 +615,38 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
     <!-- Footer -->
     <div class="sg-footer">
       Created by <a href="https://seamonsterstudios.com" target="_blank" rel="noopener" style="color:#6B7280;text-decoration:underline !important;">SeaMonster Studios</a>
+    </div>
+
+    <!-- Send to SeaMonster dialog -->
+    <div id="sg-send-dialog" class="sg-send-dialog" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="sg-send-dialog-title">
+      <div class="sg-send-dialog__inner">
+        <h4 id="sg-send-dialog-title" class="sg-send-dialog__title">🐙 Send to SeaMonster</h4>
+        <p class="sg-send-dialog__intro">You're about to share this color combination publicly with SeaMonster Studios. The following will be sent:</p>
+        <ul class="sg-send-dialog__data-list" id="sg-send-preview-list"></ul>
+        <div class="sg-send-dialog__fields">
+          <label class="sg-send-dialog__label">
+            Your name <span class="sg-send-dialog__optional">(optional)</span>
+            <input type="text" id="sg-send-name" class="sg-send-dialog__input" placeholder="e.g. Jane Smith">
+          </label>
+          <label class="sg-send-dialog__label">
+            Organization tested <span class="sg-send-dialog__optional">(optional)</span>
+            <input type="text" id="sg-send-org" class="sg-send-dialog__input" placeholder="e.g. seamonsterstudios.com">
+          </label>
+          <label class="sg-send-dialog__label">
+            Your email <span class="sg-send-dialog__optional">(optional, private — never displayed)</span>
+            <input type="email" id="sg-send-email" class="sg-send-dialog__input" placeholder="e.g. jane@example.com">
+          </label>
+          <label class="sg-send-dialog__checkbox-label">
+            <input type="checkbox" id="sg-send-gravatar">
+            Use my Gravatar on my submission (email required)
+          </label>
+        </div>
+        <div class="sg-send-dialog__actions">
+          <button id="sg-send-cancel-btn" class="sg-send-dialog__cancel">Cancel</button>
+          <button id="sg-send-confirm-btn" class="sg-send-dialog__confirm">Send to SeaMonster</button>
+        </div>
+        <p id="sg-send-status" class="sg-send-dialog__status"></p>
+      </div>
     </div>
   `;
 
@@ -2302,7 +2335,143 @@ const typeSpan = document.createElement("span");
 
   // 2. Wire Global UI Buttons (Save & CSV in the top handle)
   document.getElementById("save-analysis-btn")?.addEventListener("click", saveAnalysis);
+  // ─── SEND TO SEAMONSTER ───────────────────────────────────
+  const SEAMONSTER_ENDPOINT = "https://httpbin.org/post"; // swap for real endpoint later
 
+  function getWcagText(id) {
+    return document.getElementById(`wcag-${id}`)?.textContent?.trim() || "N/A";
+  }
+  function getApcaText(id) {
+    return document.getElementById(`apca-apca-${id}`)?.textContent?.trim() || "N/A";
+  }
+  function getHexPillText(id) {
+    const pill = document.querySelector(`#apca-apca-${id} .sg-hex-pill span:last-child`);
+    return pill ? pill.textContent.trim() : getApcaText(id);
+  }
+  function getWcagHexPillText(id) {
+    const pill = document.querySelector(`#wcag-${id} .sg-hex-pill span:last-child`);
+    return pill ? pill.textContent.trim() : getWcagText(id);
+  }
+
+  function buildSubmissionPayload(extras) {
+    const wcagRatio = getWcagText("contrast-ratio-display");
+    const wcagPass  = parseFloat(wcagRatio) >= 4.5;
+
+    // WCAG fixes from suggestion boxes
+    const wcagColorFix  = document.getElementById("wcag-fg-suggestion-label")?.textContent?.trim() || "N/A";
+    const wcagFgSugHex  = document.getElementById("wcag-fg-suggestion")?.dataset?.hex || "N/A";
+    const wcagBgSugHex  = document.getElementById("wcag-bg-suggestion")?.dataset?.hex || "N/A";
+
+    // WCAG size/weight fix — from preview status badges
+    const wcagNormalBadge = document.getElementById("wcag-preview-status-normal")?.textContent?.trim() || "N/A";
+    const wcagLargeBadge  = document.getElementById("wcag-preview-status-large")?.textContent?.trim() || "N/A";
+
+    return {
+      // Page info
+      url:            window.location.href,
+      page_title:     document.title,
+      timestamp:      new Date().toISOString(),
+
+      // Colors
+      fg_hex:         sharedFgHex,
+      bg_hex:         sharedBgHex,
+
+      // Detected
+      detected_size:   getApcaText("font-size"),
+      detected_weight: getApcaText("font-weight"),
+
+      // WCAG
+      wcag_ratio:      wcagRatio,
+      wcag_pass:       wcagPass,
+      wcag_color_fix:  wcagFgSugHex !== "N/A" ? wcagFgSugHex : wcagBgSugHex,
+      wcag_size_weight_normal: wcagNormalBadge,
+      wcag_size_weight_large:  wcagLargeBadge,
+
+      // APCA
+      apca_lc:          getApcaText("contrast-ratio-display").replace("Lc ", ""),
+      apca_size_fix:    getApcaText("rec-size"),
+      apca_weight_fix:  getApcaText("rec-weight"),
+      apca_color_fix:   getHexPillText("color-rec"),
+      apca_balanced:    `${getApcaText("rec-size")} / ${getApcaText("rec-weight")} / ${getHexPillText("color-rec")}`,
+
+      // Submitter
+      submitter_name:   extras.name || "",
+      org_tested:       extras.org  || "",
+      submitter_email:  extras.email || "",
+      use_gravatar:     extras.gravatar || false,
+    };
+  }
+
+  document.getElementById("send-to-seamonster-btn")?.addEventListener("click", () => {
+    const dialog = document.getElementById("sg-send-dialog");
+    const previewList = document.getElementById("sg-send-preview-list");
+
+    // Auto-fill org from domain
+    const orgInput = document.getElementById("sg-send-org");
+    if (orgInput && !orgInput.value) {
+      try { orgInput.value = new URL(window.location.href).hostname; } catch(e) {}
+    }
+
+    // Populate preview list
+    const wcagRatio = getWcagText("contrast-ratio-display");
+    const wcagPass  = parseFloat(wcagRatio) >= 4.5;
+    previewList.innerHTML = [
+      `<li><strong>URL:</strong> ${window.location.href}</li>`,
+      `<li><strong>Colors:</strong> ${sharedFgHex} on ${sharedBgHex}</li>`,
+      `<li><strong>Detected:</strong> ${getApcaText("font-size")}, weight ${getApcaText("font-weight")}</li>`,
+      `<li><strong>WCAG:</strong> ${wcagRatio} — ${wcagPass ? "Pass" : "Fail"}</li>`,
+      `<li><strong>APCA Lc:</strong> ${getApcaText("contrast-ratio-display").replace("Lc ", "")}</li>`,
+    ].join("");
+
+    document.getElementById("sg-send-status").textContent = "";
+    dialog.style.display = "flex";
+    document.getElementById("sg-send-name").focus();
+  });
+
+  document.getElementById("sg-send-cancel-btn")?.addEventListener("click", () => {
+    document.getElementById("sg-send-dialog").style.display = "none";
+  });
+
+  document.getElementById("sg-send-confirm-btn")?.addEventListener("click", async () => {
+    const statusEl  = document.getElementById("sg-send-status");
+    const confirmBtn = document.getElementById("sg-send-confirm-btn");
+    const payload   = buildSubmissionPayload({
+      name:     document.getElementById("sg-send-name").value.trim(),
+      org:      document.getElementById("sg-send-org").value.trim(),
+      email:    document.getElementById("sg-send-email").value.trim(),
+      gravatar: document.getElementById("sg-send-gravatar").checked,
+    });
+
+    confirmBtn.disabled = true;
+    statusEl.textContent = "Sending...";
+    statusEl.style.color = "#6B7280";
+
+    try {
+      const response = await fetch(SEAMONSTER_ENDPOINT, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Spyglass-Key": "test-key-replace-later",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.ok) {
+        statusEl.textContent = "✅ Sent! Thank you for contributing.";
+        statusEl.style.color = "#047e58";
+        setTimeout(() => {
+          document.getElementById("sg-send-dialog").style.display = "none";
+          confirmBtn.disabled = false;
+        }, 2000);
+      } else {
+        throw new Error(`Server responded with ${response.status}`);
+      }
+    } catch (err) {
+      statusEl.textContent = `❌ Something went wrong: ${err.message}`;
+      statusEl.style.color = "#dc2626";
+      confirmBtn.disabled = false;
+    }
+  });
   document.getElementById("download-csv-btn")?.addEventListener("click", () => {
     chrome.storage.local.get({ spyglass_history: [] }, (data) => {
       const history = data.spyglass_history;
