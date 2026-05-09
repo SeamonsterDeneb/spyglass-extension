@@ -1,5 +1,5 @@
 /* * Spyglass Extension
-* Version 2.4.18
+* Version 2.5
 */
 
 /* Set the base font size to 16px to anchor all internal EM units */
@@ -1213,4 +1213,10 @@ body.element-picking-cursor * {
     border-radius: 3px;
     white-space: nowrap;
     pointer-events: none;
+}
+
+#contrast-checker-container .sg-preview-badge--gray {
+    background: #F3F4F6;
+    color: #6B7280;
+    border: 1px solid #D1D5DB;
 }

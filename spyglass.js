@@ -1606,53 +1606,67 @@ const typeSpan = document.createElement("span");
 
       const sizeInPx = parseFloat(currentFontSize);
       const weightNum = parseInt(currentFontWeight, 10);
-      const isBold = weightNum >= 700;
-      const isLargeText = sizeInPx >= 24 || (sizeInPx >= 18.5 && isBold);
-
-      // Calculate minimum change to qualify as large text
-      function calcLargeTextRequirement(sizePx, weight) {
-        // Already qualifies
-        if (sizePx >= 24 || (sizePx >= 18.5 && weight >= 700)) return null;
-        // Can we get there by just bumping weight to 700?
-        if (sizePx >= 18.5 && weight < 700) return `${sizePx}px, 700+`;
-        // Close to 18.5px — favor weight bump
-        if (sizePx >= 17 && sizePx < 18.5) return `18.5px+, 700+`;
-        // Close to 24px — favor size bump
-        if (sizePx >= 21 && sizePx < 24) return `24px+, any weight`;
-        // Not close to either threshold — show both options
-        return `24px+ or 18.5px+, 700+`;
-      }
-
-      // Calculate minimum change to qualify as normal (non-large) text
-      // Normal text just means it doesn't meet large text criteria —
-      // so we describe what the current text would need to shrink/lighten to
-      function calcNormalTextRequirement(sizePx, weight) {
-        if (sizePx < 18.5) return `< 18.5px, any weight`;
-        if (sizePx < 24 && weight < 700) return `${sizePx}px, < 700`;
-        return `< 24px, < 700`;
-      }
-
+      const isLargeText = sizeInPx >= 24 || (sizeInPx >= 18.5 && weightNum >= 700);
       const passNormal = contrast >= 4.5;
       const passLarge  = contrast >= 3.0;
+      const largeRequirement = "24px+ or 18.5px+ and 700+";
+      const detectedLabel = `${currentFontSize}, ${currentFontWeight}`;
 
-      if (isLargeText) {
-        // Detected text IS large — normal line shows requirement, large line shows detected
-        const largeReq = calcNormalTextRequirement(sizeInPx, weightNum);
-        R.previewStatusNormal.textContent = `Normal text (AA): ${passNormal ? largeReq : `needs ${largeReq}`}`;
-        R.previewStatusNormal.className = `sg-preview-badge ${passNormal ? "sg-preview-badge--pass" : "sg-preview-badge--fail"}`;
+      // Reset classes
+      R.previewLineNormal.classList.remove("spyglass-preview-highlight");
+      R.previewLineLarge.classList.remove("spyglass-preview-highlight");
 
-        R.previewStatusLarge.textContent = `Large text (AA): ${currentFontSize}, ${currentFontWeight}`;
-        R.previewStatusLarge.className = `sg-preview-badge ${passLarge ? "sg-preview-badge--pass" : "sg-preview-badge--fail"}`;
+      if (!passLarge) {
+        // Contrast fails 3:1 — both red, no "needs"
+        if (isLargeText) {
+          // Large text detected
+          R.previewStatusNormal.textContent = `Normal text (AA): normal text wouldn't pass`;
+          R.previewStatusNormal.className = "sg-preview-badge sg-preview-badge--fail";
+          R.previewStatusLarge.textContent = `Large text (AA): ${detectedLabel}`;
+          R.previewStatusLarge.className = "sg-preview-badge sg-preview-badge--fail";
+          if (ps.hasSelectedElement) R.previewLineLarge.classList.add("spyglass-preview-highlight");
+        } else {
+          // Normal text detected
+          R.previewStatusNormal.textContent = `Normal text (AA): ${detectedLabel}`;
+          R.previewStatusNormal.className = "sg-preview-badge sg-preview-badge--fail";
+          R.previewStatusLarge.textContent = `Large text (AA): ${largeRequirement}`;
+          R.previewStatusLarge.className = "sg-preview-badge sg-preview-badge--fail";
+          if (ps.hasSelectedElement) R.previewLineNormal.classList.add("spyglass-preview-highlight");
+        }
+      } else if (!passNormal) {
+        // Contrast passes 3:1 but fails 4.5:1
+        if (isLargeText) {
+          // Large text detected — large passes, normal wouldn't
+          R.previewStatusNormal.textContent = `Normal text (AA): normal text wouldn't pass`;
+          R.previewStatusNormal.className = "sg-preview-badge sg-preview-badge--gray";
+          R.previewStatusLarge.textContent = `Large text (AA): ${detectedLabel}`;
+          R.previewStatusLarge.className = "sg-preview-badge sg-preview-badge--pass";
+          if (ps.hasSelectedElement) R.previewLineLarge.classList.add("spyglass-preview-highlight");
+        } else {
+          // Normal text detected — normal fails, large also fails
+          R.previewStatusNormal.textContent = `Normal text (AA): ${detectedLabel}`;
+          R.previewStatusNormal.className = "sg-preview-badge sg-preview-badge--fail";
+          R.previewStatusLarge.textContent = `Large text (AA): needs ${largeRequirement}`;
+          R.previewStatusLarge.className = "sg-preview-badge sg-preview-badge--fail";
+          if (ps.hasSelectedElement) R.previewLineNormal.classList.add("spyglass-preview-highlight");
+        }
       } else {
-        // Detected text IS normal — normal line shows detected, large line shows requirement
-        const largeReq = calcLargeTextRequirement(sizeInPx, weightNum);
-        R.previewStatusNormal.textContent = `Normal text (AA): ${currentFontSize}, ${currentFontWeight}`;
-        R.previewStatusNormal.className = `sg-preview-badge ${passNormal ? "sg-preview-badge--pass" : "sg-preview-badge--fail"}`;
-
-        R.previewStatusLarge.textContent = largeReq
-          ? `Large text (AA): ${passLarge ? largeReq : `needs ${largeReq}`}`
-          : `Large text (AA): ${currentFontSize}, ${currentFontWeight}`;
-        R.previewStatusLarge.className = `sg-preview-badge ${passLarge ? "sg-preview-badge--pass" : "sg-preview-badge--fail"}`;
+        // Contrast passes 4.5:1 — both could pass
+        if (isLargeText) {
+          // Large text detected
+          R.previewStatusNormal.textContent = `Normal text (AA): normal text would also pass`;
+          R.previewStatusNormal.className = "sg-preview-badge sg-preview-badge--gray";
+          R.previewStatusLarge.textContent = `Large text (AA): ${detectedLabel}`;
+          R.previewStatusLarge.className = "sg-preview-badge sg-preview-badge--pass";
+          if (ps.hasSelectedElement) R.previewLineLarge.classList.add("spyglass-preview-highlight");
+        } else {
+          // Normal text detected
+          R.previewStatusNormal.textContent = `Normal text (AA): ${detectedLabel}`;
+          R.previewStatusNormal.className = "sg-preview-badge sg-preview-badge--pass";
+          R.previewStatusLarge.textContent = `Large text (AA): at least ${largeRequirement}`;
+          R.previewStatusLarge.className = "sg-preview-badge sg-preview-badge--gray";
+          if (ps.hasSelectedElement) R.previewLineNormal.classList.add("spyglass-preview-highlight");
+        }
       }
       if (contrast < ps.tweakTargetContrast) {
         R.fgSuggestionBox.style.display = "flex";
