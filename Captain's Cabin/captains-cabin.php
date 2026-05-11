@@ -3,7 +3,7 @@
  * Plugin Name:       Captain Accessible's Cabin
  * Plugin URI:        https://seamonsterstudios.com/
  * Description:       SeaMonster Studios tools: Screen Reader Ropes Course Leaderboard and Spyglass Contrast Submission collector.
- * Version:           2.0.0
+ * Version:           2.2.0
  * Author:            Captain Accessible
  * Author URI:        https://seamonsterstudios.com/
  * License:           GPL v2 or later
@@ -171,6 +171,28 @@ function sg_register_rest_route() {
     ) );
 }
 add_action( 'rest_api_init', 'sg_register_rest_route' );
+
+// --- 2e. Allow CORS for Spyglass extension submissions ---
+function sg_add_cors_headers() {
+    header( 'Access-Control-Allow-Origin: *' );
+    header( 'Access-Control-Allow-Methods: POST, OPTIONS' );
+    header( 'Access-Control-Allow-Headers: Content-Type, X-Spyglass-Key' );
+}
+add_action( 'rest_api_init', function() {
+    remove_filter( 'rest_pre_serve_request', 'rest_send_cors_headers' );
+    add_filter( 'rest_pre_serve_request', function( $value ) {
+        sg_add_cors_headers();
+        return $value;
+    });
+}, 15 );
+
+// Handle OPTIONS preflight request
+add_action( 'init', function() {
+    if ( $_SERVER['REQUEST_METHOD'] === 'OPTIONS' ) {
+        sg_add_cors_headers();
+        exit;
+    }
+});
 
 function sg_check_api_key( $request ) {
     $provided_key = $request->get_header( 'X-Spyglass-Key' );

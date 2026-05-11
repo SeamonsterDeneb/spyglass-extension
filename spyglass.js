@@ -1,5 +1,5 @@
 // ============================================================
-// SPYGLASS CONTRAST CHECKER — v2.8
+// SPYGLASS CONTRAST CHECKER — v2.9
 // ============================================================
 import { minSizeForLc, minLcForSize, fontMatrixWeightKeys, fontMatrixLcKeys } from "./apca-lookup.js";
 import { APCAcontrast, sRGBtoY } from "apca-w3";
@@ -12,7 +12,7 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
   }
 
   // ─── CONSTANTS & SHARED STATE ─────────────────────────────
-  const version = "2.8";
+  const version = "2.9";
   // ─── IMAGE BACKGROUND ANALYZER ───────────────────────────
   class ImageBackgroundAnalyzer {
     constructor() {
@@ -2336,7 +2336,7 @@ const typeSpan = document.createElement("span");
   // 2. Wire Global UI Buttons (Save & CSV in the top handle)
   document.getElementById("save-analysis-btn")?.addEventListener("click", saveAnalysis);
   // ─── SEND TO SEAMONSTER ───────────────────────────────────
-  const SEAMONSTER_ENDPOINT = "https://httpbin.org/post"; // swap for real endpoint later
+  const SEAMONSTER_ENDPOINT = "https://seamonsterstudios.com/wp-json/spyglass/v1/submit"; 
 
   function getWcagText(id) {
     return document.getElementById(`wcag-${id}`)?.textContent?.trim() || "N/A";
@@ -2451,7 +2451,7 @@ const typeSpan = document.createElement("span");
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-Spyglass-Key": "test-key-replace-later",
+          "X-Spyglass-Key": "spyglasst3st1ng4g00d",
         },
         body: JSON.stringify(payload),
       });
