@@ -1,5 +1,5 @@
 // ============================================================
-// SPYGLASS CONTRAST CHECKER — v2.8
+// SPYGLASS CONTRAST CHECKER — v2.9.2
 // ============================================================
 import { minSizeForLc, minLcForSize, fontMatrixWeightKeys, fontMatrixLcKeys } from "./apca-lookup.js";
 import { APCAcontrast, sRGBtoY } from "apca-w3";
@@ -12,7 +12,7 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
   }
 
   // ─── CONSTANTS & SHARED STATE ─────────────────────────────
-  const version = "2.8";
+  const version = "2.9.2";
   // ─── IMAGE BACKGROUND ANALYZER ───────────────────────────
   class ImageBackgroundAnalyzer {
     constructor() {
@@ -1446,7 +1446,7 @@ const typeSpan = document.createElement("span");
       const meetsAdvisory = lcNow >= advisory.lc;
       advisoryEl.className = `sg-apca-advisory ${meetsAdvisory ? "sg-apca-advisory--pass" : "sg-apca-advisory--fail"}`;
 
-      advisoryEl.innerHTML = `
+      const rawHtmlString = `
         <div class="sg-advisory-status">
           ${meetsAdvisory ? '✓' : '⚠️'} ${meetsAdvisory ? 'Meets' : 'Below'} advisory for ${advisory.label}: Lc ${advisory.lc}+
         </div>
@@ -1458,6 +1458,18 @@ const typeSpan = document.createElement("span");
           ${advisory.definition}
         </div>
       `;
+
+      // 1. Parse the template string safely into a temporary DOM structure
+      const parser = new DOMParser();
+      const parsedDoc = parser.parseFromString(rawHtmlString, 'text/html');
+
+      // 2. Wipe the element's inner contents clean
+      advisoryEl.innerHTML = '';
+
+      // 3. Move ALL parsed sibling nodes into the live advisory element securely
+      while (parsedDoc.body.firstChild) {
+        advisoryEl.appendChild(parsedDoc.body.firstChild);
+      }
       // ── Color row ────────────────────────────────────────
       const colorDetectedEl = document.getElementById(`${side}-apca-color-detected`);
       const colorNeededEl   = document.getElementById(`${side}-apca-color-needed`);
@@ -2336,69 +2348,49 @@ const typeSpan = document.createElement("span");
   // 2. Wire Global UI Buttons (Save & CSV in the top handle)
   document.getElementById("save-analysis-btn")?.addEventListener("click", saveAnalysis);
   // ─── SEND TO SEAMONSTER ───────────────────────────────────
-  const SEAMONSTER_ENDPOINT = "https://httpbin.org/post"; // swap for real endpoint later
+  const SEAMONSTER_ENDPOINT = "https://seamonsterstudios.com/wp-json/spyglass/v1/submit";
 
   function getWcagText(id) {
-    return document.getElementById(`wcag-${id}`)?.textContent?.trim() || "N/A";
+    var el = document.getElementById("wcag-" + id);
+    return el ? el.textContent.trim() : "N/A";
   }
   function getApcaText(id) {
-    return document.getElementById(`apca-apca-${id}`)?.textContent?.trim() || "N/A";
+    var el = document.getElementById("apca-apca-" + id);
+    return el ? el.textContent.trim() : "N/A";
   }
   function getHexPillText(id) {
-    const pill = document.querySelector(`#apca-apca-${id} .sg-hex-pill span:last-child`);
+    var pill = document.querySelector("#apca-apca-" + id + " .sg-hex-pill span:last-child");
     return pill ? pill.textContent.trim() : getApcaText(id);
   }
-  function getWcagHexPillText(id) {
-    const pill = document.querySelector(`#wcag-${id} .sg-hex-pill span:last-child`);
-    return pill ? pill.textContent.trim() : getWcagText(id);
-  }
-
   function buildSubmissionPayload(extras) {
-    const wcagRatio = getWcagText("contrast-ratio-display");
-    const wcagPass  = parseFloat(wcagRatio) >= 4.5;
-
-    // WCAG fixes from suggestion boxes
-    const wcagColorFix  = document.getElementById("wcag-fg-suggestion-label")?.textContent?.trim() || "N/A";
-    const wcagFgSugHex  = document.getElementById("wcag-fg-suggestion")?.dataset?.hex || "N/A";
-    const wcagBgSugHex  = document.getElementById("wcag-bg-suggestion")?.dataset?.hex || "N/A";
-
-    // WCAG size/weight fix — from preview status badges
-    const wcagNormalBadge = document.getElementById("wcag-preview-status-normal")?.textContent?.trim() || "N/A";
-    const wcagLargeBadge  = document.getElementById("wcag-preview-status-large")?.textContent?.trim() || "N/A";
+    var wcagRatio = getWcagText("contrast-ratio-display");
+    var wcagPass = parseFloat(wcagRatio) >= 4.5;
+    var apcaEl = document.getElementById("apca-contrast-ratio-display");
+    var apcaDisplay = apcaEl ? apcaEl.textContent : "N/A";
+    var apcaLcOnly = apcaDisplay.replace("Lc ", "").split(' ')[0];
 
     return {
-      // Page info
-      url:            window.location.href,
-      page_title:     document.title,
-      timestamp:      new Date().toISOString(),
-
-      // Colors
-      fg_hex:         sharedFgHex,
-      bg_hex:         sharedBgHex,
-
-      // Detected
-      detected_size:   getApcaText("font-size"),
+      url: window.location.href,
+      page_title: document.title,
+      timestamp: new Date().toISOString(),
+      fg_hex: sharedFgHex,
+      bg_hex: sharedBgHex,
+      detected_size: getApcaText("font-size"),
       detected_weight: getApcaText("font-weight"),
-
-      // WCAG
-      wcag_ratio:      wcagRatio,
-      wcag_pass:       wcagPass,
-      wcag_color_fix:  wcagFgSugHex !== "N/A" ? wcagFgSugHex : wcagBgSugHex,
-      wcag_size_weight_normal: wcagNormalBadge,
-      wcag_size_weight_large:  wcagLargeBadge,
-
-      // APCA
-      apca_lc:          getApcaText("contrast-ratio-display").replace("Lc ", ""),
-      apca_size_fix:    getApcaText("rec-size"),
-      apca_weight_fix:  getApcaText("rec-weight"),
-      apca_color_fix:   getHexPillText("color-rec"),
-      apca_balanced:    `${getApcaText("rec-size")} / ${getApcaText("rec-weight")} / ${getHexPillText("color-rec")}`,
-
-      // Submitter
-      submitter_name:   extras.name || "",
-      org_tested:       extras.org  || "",
-      submitter_email:  extras.email || "",
-      use_gravatar:     extras.gravatar || false,
+      wcag_ratio: wcagRatio,
+      wcag_pass: wcagPass,
+      wcag_color_fix: (document.getElementById("wcag-fg-suggestion") || {}).dataset ? document.getElementById("wcag-fg-suggestion").dataset.hex : "N/A",
+      wcag_size_weight_normal: document.getElementById("wcag-preview-status-normal") ? document.getElementById("wcag-preview-status-normal").textContent.trim() : "N/A",
+      wcag_size_weight_large: document.getElementById("wcag-preview-status-large") ? document.getElementById("wcag-preview-status-large").textContent.trim() : "N/A",
+      apca_lc: apcaLcOnly,
+      apca_size_fix: getApcaText("rec-size"),
+      apca_weight_fix: getApcaText("rec-weight"),
+      apca_color_fix: getHexPillText("color-rec"),
+      apca_balanced: getApcaText("rec-size") + " / " + getApcaText("rec-weight") + " / " + getHexPillText("color-rec"),
+      submitter_name: extras.name || "",
+      org_tested: extras.org || "",
+      submitter_email: extras.email || "",
+      use_gravatar: extras.gravatar || false
     };
   }
 
@@ -2413,15 +2405,25 @@ const typeSpan = document.createElement("span");
     }
 
     // Populate preview list
-    const wcagRatio = getWcagText("contrast-ratio-display");
-    const wcagPass  = parseFloat(wcagRatio) >= 4.5;
-    previewList.innerHTML = [
-      `<li><strong>URL:</strong> ${window.location.href}</li>`,
-      `<li><strong>Colors:</strong> ${sharedFgHex} on ${sharedBgHex}</li>`,
-      `<li><strong>Detected:</strong> ${getApcaText("font-size")}, weight ${getApcaText("font-weight")}</li>`,
-      `<li><strong>WCAG:</strong> ${wcagRatio} — ${wcagPass ? "Pass" : "Fail"}</li>`,
-      `<li><strong>APCA Lc:</strong> ${getApcaText("contrast-ratio-display").replace("Lc ", "")}</li>`,
-    ].join("");
+    var wcagRatio = getWcagText("contrast-ratio-display");
+    var apcaEl = document.getElementById("apca-contrast-ratio-display");
+    var apcaDisplay = apcaEl ? apcaEl.textContent.replace("Lc ", "").split(' ')[0] : "N/A";
+
+    // 1. Set up the clean, safe skeleton structure without variables
+    previewList.innerHTML = `
+      <li class="sg-url"><strong>URL:</strong> <span class="val"></span></li>
+      <li class="sg-colors"><strong>Colors:</strong> <span class="val"></span></li>
+      <li class="sg-detected"><strong>Detected:</strong> <span class="val"></span></li>
+      <li class="sg-wcag"><strong>WCAG:</strong> <span class="val"></span></li>
+      <li class="sg-apca"><strong>APCA Lc:</strong> <span class="val"></span></li>
+    `;
+
+    // 2. Safe-inject the variables as text strings
+    previewList.querySelector('.sg-url .val').textContent = window.location.href;
+    previewList.querySelector('.sg-colors .val').textContent = `${sharedFgHex} on ${sharedBgHex}`;
+    previewList.querySelector('.sg-detected .val').textContent = `${getApcaText("font-size")}, weight ${getApcaText("font-weight")}`;
+    previewList.querySelector('.sg-wcag .val').textContent = wcagRatio;
+    previewList.querySelector('.sg-apca .val').textContent = apcaDisplay;
 
     document.getElementById("sg-send-status").textContent = "";
     dialog.style.display = "flex";
@@ -2451,7 +2453,7 @@ const typeSpan = document.createElement("span");
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-Spyglass-Key": "test-key-replace-later",
+          "X-Spyglass-Key": "1spyw1thmyl1ttl33y3" 
         },
         body: JSON.stringify(payload),
       });
