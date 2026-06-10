@@ -1,5 +1,5 @@
 // ============================================================
-// SPYGLASS CONTRAST CHECKER — v2.9.2
+// SPYGLASS CONTRAST CHECKER — v2.9.6
 // ============================================================
 import { minSizeForLc, minLcForSize, fontMatrixWeightKeys, fontMatrixLcKeys } from "./apca-lookup.js";
 import { APCAcontrast, sRGBtoY } from "apca-w3";
@@ -543,6 +543,11 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
                         <td class="apca-td" id="${S}-apca-color-needed">-</td>
                         <td class="apca-td apca-rec sg-rec-cell" id="${S}-apca-color-rec">—</td>
                       </tr>
+                      <tr>
+                        <td class="apca-td apca-label">Balanced</td>
+                        <td class="apca-td apca-state-na" colspan="2" style="font-size: 11px; color: #9CA3AF; text-align: center;">Size + Weight Combo</td>
+                        <td class="apca-td apca-rec sg-rec-cell" id="${S}-apca-balanced-rec">—</td>
+                      </tr>
                     </tbody>
                   </table>
                 </div>
@@ -591,12 +596,14 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
           <img src="SPYGLASS_ICON_URL_PLACEHOLDER" alt="" class="sg-drag-handle__icon">
           Spyglass Contrast Checker (v${version})
         </h3>
-        <button id="close-checker-btn" class="sg-drag-handle__close">✕</button>
+        </h3>
+        <div style="display: flex; gap: 8px; align-items: center; margin-left: auto;">
+          <button id="save-analysis-btn" class="sg-save-btn" title="Save Analysis">💾 Save</button>
+          <button id="download-csv-btn" class="sg-save-btn" title="Download All as CSV" style="color: #047e58 !important; background: #F0FDF4; border-color: #6EE7B7; margin-left: 4px;">📊 CSV</button>
+          <button id="send-to-seamonster-btn" class="sg-send-btn" title="Send to SeaMonster" style="margin-left: 4px;">🐙 Send</button>
+          <button id="close-checker-btn" aria-label="Close" class="sg-drag-handle__close">✕</button>
+        </div>
       </div>
-      <div class="sg-drag-handle__actions">
-        <button id="save-analysis-btn" class="sg-save-btn">💾 Save Test</button>
-        <button id="download-csv-btn" class="sg-save-btn">📊 Download CSV</button>
-        <button id="send-to-seamonster-btn" class="sg-send-btn">🐙 Send to SeaMonster</button>
       </div>
       <div class="sg-drag-handle__modes">
         <span class="spyglass-algo-label">Mode:</span>
@@ -764,29 +771,34 @@ import { APCAcontrast, sRGBtoY } from "apca-w3";
       pageTitle: document.title,
       colors: { foreground: sharedFgHex, background: sharedBgHex },
       results: {
-        wcag: getRefs("wcag").contrastRatioDisplay.textContent,
-        apcaLc: getRefs("apca").contrastRatioDisplay.textContent.replace('Lc ', ''),
-        detected: {
-          combo: `${getApcaText("font-size")} / ${getApcaText("font-weight")} / ${sharedFgHex.toUpperCase()}`
-        },
-        recommendations: { sizeMod: sRec, weightMod: wRec, colorMod: cRec, balanced: balancedString }
+        wcag: wcagContrast.toFixed(2),
+        apcaLc: apcaContrast.toFixed(1),
+        recommendations: {
+          sizeOnly: getApcaText("needed-size"),
+          weightOnly: getApcaText("needed-weight"),
+          colorSuggested: getApcaText("color-rec"),
+          balancedCombo: getApcaText("balanced-rec")
+        }
       }
     };
 
+    // Save to extension storage (accumulates across all pages)
     chrome.storage.local.get({ spyglass_history: [] }, (data) => {
       const history = data.spyglass_history;
       history.push(analysis);
       chrome.storage.local.set({ spyglass_history: history }, () => {
+        // Visual feedback on the button
         const btn = document.getElementById("save-analysis-btn");
-        if (btn) {
-          const oldText = btn.textContent;
-          btn.textContent = "✅ Saved";
-          setTimeout(() => { btn.textContent = oldText; }, 1500);
-        }
+        const originalText = btn.textContent;
+        btn.textContent = "✅ Saved";
+        btn.style.backgroundColor = "#D1FAE5";
+        setTimeout(() => { 
+          btn.textContent = originalText; 
+          btn.style.backgroundColor = "";
+        }, 1500);
       });
     });
   }
-
   function rgbaToHsl(rgba) {
     const r=rgba.r/255, g=rgba.g/255, b=rgba.b/255;
     const max=Math.max(r,g,b), min=Math.min(r,g,b);
@@ -1416,6 +1428,12 @@ const typeSpan = document.createElement("span");
             : `${bestRec.sz.toFixed(1)}px`;
           R.apcaRecSize.textContent = szLabel;
           R.apcaRecWeight.textContent = `${bestRec.wk}`;
+
+          const balancedRecEl = document.getElementById(`${side}-apca-balanced-rec`);
+          if (balancedRecEl) {
+            balancedRecEl.textContent = `${bestRec.sz % 1 === 0 ? bestRec.sz : bestRec.sz.toFixed(1)}px / w${bestRec.wk}`;
+            balancedRecEl.classList.add("apca-rec-active");
+          }
         } else {
           [R.apcaRecSize,R.apcaRecWeight].forEach(el=>{
             el.classList.remove("apca-state-pass","apca-rec-active");
@@ -1423,6 +1441,11 @@ const typeSpan = document.createElement("span");
           });
           R.apcaRecSize.textContent = "N/A";
           R.apcaRecWeight.textContent = "N/A";
+          const balancedRecEl = document.getElementById(`${side}-apca-balanced-rec`);
+          if (balancedRecEl) {
+            balancedRecEl.textContent = "N/A";
+            balancedRecEl.classList.remove("apca-rec-active");
+          }
         }
       }
 
@@ -1788,15 +1811,6 @@ const typeSpan = document.createElement("span");
     sharedBgHex = bgSnapshot;
     if (mode === "apca" || mode === "unified") renderPanel("apca");
   }
-
-// ============================================================
-// END OF CHUNK 2 — continue immediately with chunk 3
-// ============================================================
-
-// ============================================================
-// SPYGLASS CONTRAST CHECKER — chunk 3 of 3
-// Paste this immediately after chunk 2.
-// ============================================================
 
   // ─── TWEAK CONTROLS ───────────────────────────────────────
   const minusIcon = `data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMiIgaGVpZ2h0PSIxMiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMzNzQxNTEiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48bGluZSB4MT0iNSIgeTE9IjEyIiB4Mj0iMTkiIHkyPSIxMiI+PC9saW5lPjwvc3ZnPg==`;
@@ -2308,17 +2322,35 @@ const typeSpan = document.createElement("span");
       renderAll();
     });
   });
+  document.getElementById("download-csv-btn")?.addEventListener("click", () => {
+    chrome.storage.local.get({ spyglass_history: [] }, (data) => {
+      const history = data.spyglass_history;
+      if (history.length === 0) return;
 
-  // ─── CLOSE BUTTON ─────────────────────────────────────────
+      const headers = ["Timestamp", "URL", "Page", "FG", "BG", "WCAG Ratio", "APCA Lc", "Size Only", "Weight Only", "Color Only", "Balanced Rec"];
+      const rows = history.map(s => [
+        s.timestamp, s.url, s.pageTitle, s.colors.foreground, s.colors.background,
+        s.results.wcag, s.results.apcaLc, 
+        s.results.recommendations.sizeOnly, s.results.recommendations.weightOnly, 
+        s.results.recommendations.colorSuggested, s.results.recommendations.balancedCombo
+      ]);
+
+      const csvContent = [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+      const blob = new Blob([csvContent], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `spyglass-master-report.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+  });
   document.getElementById("close-checker-btn")?.addEventListener("click", () => {
     stopAllPickers();
     if (pixelAnalyzer) pixelAnalyzer.cleanup();
-    document.removeEventListener("mousemove", handleHoverPickerMouseMove);
-    document.removeEventListener("mousemove", handleRestingPickerMouseMove);
-    document.removeEventListener("click", handleElementPickerClick, true);
-    document.removeEventListener("keydown", handleEscapeKey);
     container.remove();
   });
+  document.getElementById("save-analysis-btn")?.addEventListener("click", saveAnalysis);
   // ─── DRAG HANDLE ──────────────────────────────────────────
   const dragHandle = document.getElementById("drag-handle");
   let isDragging = false, dragOffsetX, dragOffsetY;
@@ -2339,9 +2371,7 @@ const typeSpan = document.createElement("span");
     document.body.style.userSelect = "";
   });
 
- // ─── FINAL WIRING & INITIALIZATION ───────────────────────
-
-  // 1. Wire the internal panel logic (buttons inside the WCAG/APCA columns)
+  // ─── WIRE BOTH SIDES ──────────────────────────────────────
   wireSide("wcag");
   wireSide("apca");
 
